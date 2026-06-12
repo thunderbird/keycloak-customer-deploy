@@ -1,0 +1,22 @@
+# tb-prod patch: public auth hostname (Cloudflare tunnel) + tailnet-only admin
+# hostname (KC_HOSTNAME_ADMIN). 3 replicas for HA.
+#
+# KC_HOSTNAME_ADMIN points admin-console links at the tailnet host, but does NOT
+# by itself block /admin on the public host (Keycloak 26 hostname-v2). The public
+# /admin deny is enforced at the edge (Cloudflare Access) - see Part D2 hardening.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: keycloak
+          env:
+            - name: KC_HOSTNAME
+              value: https://auth.tb.pro
+            - name: KC_HOSTNAME_ADMIN
+              value: https://keycloak-customer-admin.tail2726a2.ts.net

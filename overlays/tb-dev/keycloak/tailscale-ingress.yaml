@@ -1,0 +1,26 @@
+# Tailnet-only Ingress for the tb-dev Customer Auth Keycloak. The whole service
+# (auth + admin) is private to the tailnet for dev validation (#141) - no public
+# Cloudflare tunnel yet, so the admin console is never publicly exposed.
+#
+# Deliberately absent annotations:
+#   - tailscale.com/funnel: would expose the service publicly.
+#   - tailscale.com/tags: operator default (tag:k8s-mzla-tb-dev) is correct.
+#   - tailscale.com/hostname: tls.hosts[0] is the documented hostname source.
+# Operator appends .<TAILNET>.ts.net -> keycloak-customer-tb-dev.tail2726a2.ts.net
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-customer-tb-dev
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - keycloak-customer-tb-dev
+  defaultBackend:
+    service:
+      name: keycloak-customer
+      port:
+        number: 80

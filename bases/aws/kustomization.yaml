@@ -1,0 +1,11 @@
+---
+namespace: keycloak-customer
+
+resources:
+  - db-instance.yaml
+  - db-subnet-group.yaml
+  - db-field-export.yaml
+
+labels:
+  - pairs:
+      app: keycloak-customer

@@ -1,0 +1,16 @@
+# tb-dev patch: tailnet hostname (dev is tailnet-only; reached via the Tailscale
+# Ingress). 2 replicas (base default).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: keycloak
+          env:
+            - name: KC_HOSTNAME
+              value: https://keycloak-customer-tb-dev.tail2726a2.ts.net

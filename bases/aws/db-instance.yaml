@@ -1,0 +1,47 @@
+# ACK-managed RDS PostgreSQL for Customer Auth (Keycloak realm tbpro).
+# Graviton ARM64, encrypted; master credentials from K8s Secret (populated by ESO).
+# Per-overlay patches set: dbInstanceIdentifier, multiAZ, deletionProtection,
+# backupRetentionPeriod, and vpcSecurityGroupIDs (from the cluster's Pulumi
+# stack output rds_sg_keycloak_id).
+#
+# engineVersion: pinned to 17 here. For the prod cutover (#142) the major version
+# MUST match the source Customer Auth RDS so logical replication / snapshot
+# restore works - confirm during the #138 inventory.
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBInstance
+metadata:
+  name: keycloak-customer-db
+  namespace: keycloak-customer
+spec:
+  dbInstanceIdentifier: mzla-keycloak-customer
+  dbInstanceClass: db.m7g.large
+  engine: postgres
+  engineVersion: "17"
+  allocatedStorage: 50
+  maxAllocatedStorage: 200
+  storageType: gp3
+  storageEncrypted: true
+  multiAZ: false
+  dbName: keycloak
+  masterUsername: keycloak
+  masterUserPassword:
+    namespace: keycloak-customer
+    name: keycloak-customer-db
+    key: password
+  dbSubnetGroupName: keycloak-customer-db-subnets
+  vpcSecurityGroupIDs:
+    - "REPLACE_RDS_SG_KEYCLOAK_ID"
+  backupRetentionPeriod: 7
+  preferredBackupWindow: "03:00-04:00"
+  preferredMaintenanceWindow: "sun:05:00-sun:06:00"
+  deletionProtection: false
+  copyTagsToSnapshot: true
+  performanceInsightsEnabled: true
+  performanceInsightsRetentionPeriod: 7
+  publiclyAccessible: false
+  autoMinorVersionUpgrade: true
+  tags:
+    - key: Service
+      value: keycloak-customer-auth
+    - key: ManagedBy
+      value: ack

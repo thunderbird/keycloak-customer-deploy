@@ -1,0 +1,16 @@
+---
+namespace: keycloak-customer
+
+resources:
+  - namespace.yaml
+  - statefulset.yaml
+  - service.yaml
+  - pdb.yaml
+  - rds-endpoint-configmap.yaml
+  - db-externalsecret.yaml
+  - admin-externalsecret.yaml
+  - vmservicescrape.yaml
+
+labels:
+  - pairs:
+      app: keycloak-customer

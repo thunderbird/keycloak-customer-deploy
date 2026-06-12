@@ -1,0 +1,10 @@
+---
+namespace: keycloak-customer
+
+resources:
+  - aws
+  - keycloak
+
+labels:
+  - pairs:
+      app: keycloak-customer

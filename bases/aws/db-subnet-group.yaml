@@ -1,0 +1,19 @@
+# ACK-managed RDS subnet group - places the Customer Auth RDS in the cluster's
+# private subnets. subnetIDs are patched per overlay from the cluster's Pulumi
+# stack output private_subnet_ids.
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBSubnetGroup
+metadata:
+  name: keycloak-customer-db-subnets
+  namespace: keycloak-customer
+spec:
+  name: keycloak-customer-db-subnets
+  description: "Customer Auth RDS - private subnets"
+  subnetIDs:
+    - "REPLACE_PRIVATE_SUBNET_A"
+    - "REPLACE_PRIVATE_SUBNET_B"
+  tags:
+    - key: Service
+      value: keycloak-customer-auth
+    - key: ManagedBy
+      value: ack

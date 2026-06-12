@@ -1,0 +1,15 @@
+# Seed ConfigMap for the ACK FieldExport to patch with RDS endpoint values.
+# The ACK controller ClusterRole has patch but not create on ConfigMaps, so this
+# must exist before FieldExport can populate it.
+#
+# IMPORTANT: data.host/data.port are carved out in the ArgoCD Application's
+# `ignoreDifferences` (platform-infra app, with RespectIgnoreDifferences=true) so
+# selfHeal does NOT revert FieldExport's live values back to this seed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-customer-rds-endpoint
+  namespace: keycloak-customer
+data:
+  host: "pending-field-export"
+  port: "5432"

@@ -1,0 +1,13 @@
+# tb-dev patch: private subnets from mzla-tb-dev (eu-central-1a/b).
+# REPLACE from: AWS_PROFILE=mzla-tb-dev pulumi stack output private_subnet_ids
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBSubnetGroup
+metadata:
+  name: keycloak-customer-db-subnets
+  namespace: keycloak-customer
+spec:
+  name: keycloak-customer-db-subnets
+  description: "Customer Auth RDS - tb-dev private subnets (eu-central-1a/b)"
+  subnetIDs:
+    - "REPLACE_TB_DEV_PRIVATE_SUBNET_A"
+    - "REPLACE_TB_DEV_PRIVATE_SUBNET_B"

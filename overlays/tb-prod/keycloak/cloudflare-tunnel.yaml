@@ -1,0 +1,39 @@
+# Public Cloudflare Tunnel for Customer Auth (auth.tb.pro). TLS terminates at the
+# Cloudflare edge; the tunnel forwards plaintext HTTP to the ClusterIP service.
+#
+# CONFIRM before deploy: tb.pro must be a managed zone in CF account 407a3cd7...
+# (thunderbird.net tunnels use that account; tb.pro zone ownership to be verified).
+# The public /admin deny (Cloudflare Access) is the Part D2 hardening gate; the
+# admin console itself is reached over the tailnet (tailscale-admin-ingress.yaml).
+apiVersion: networking.cfargotunnel.com/v1alpha2
+kind: Tunnel
+metadata:
+  name: keycloak-customer-tunnel
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  newTunnel:
+    name: keycloak-customer-mzla-eks-tb-prod01
+  cloudflare:
+    domain: tb.pro
+    secret: cloudflare-secrets
+    accountId: "407a3cd7b36b3ec71bf765856c90ae8c"
+---
+apiVersion: networking.cfargotunnel.com/v1alpha1
+kind: TunnelBinding
+metadata:
+  name: keycloak-customer-binding
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+subjects:
+  - kind: Service
+    name: keycloak-customer
+    spec:
+      fqdn: auth.tb.pro
+      protocol: http
+      target: http://keycloak-customer.keycloak-customer.svc:80
+tunnelRef:
+  kind: Tunnel
+  name: keycloak-customer-tunnel

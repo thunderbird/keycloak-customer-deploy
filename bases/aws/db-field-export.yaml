@@ -1,0 +1,38 @@
+# ACK FieldExport - exports the RDS endpoint address and port into the ConfigMap
+# the Keycloak StatefulSet reads via KC_DB_URL_HOST / KC_DB_URL_PORT.
+# Populated automatically once the DBInstance reaches available.
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: keycloak-customer-db-host
+  namespace: keycloak-customer
+spec:
+  from:
+    path: ".status.endpoint.address"
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: keycloak-customer-db
+  to:
+    name: keycloak-customer-rds-endpoint
+    namespace: keycloak-customer
+    kind: configmap
+    key: host
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: keycloak-customer-db-port
+  namespace: keycloak-customer
+spec:
+  from:
+    path: ".status.endpoint.port"
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: keycloak-customer-db
+  to:
+    name: keycloak-customer-rds-endpoint
+    namespace: keycloak-customer
+    kind: configmap
+    key: port

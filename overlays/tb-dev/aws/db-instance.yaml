@@ -1,0 +1,14 @@
+# tb-dev patch: single-AZ dev DB, no deletion protection, dev SG.
+# REPLACE the SG id from: AWS_PROFILE=mzla-tb-dev pulumi stack output rds_sg_keycloak_id
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBInstance
+metadata:
+  name: keycloak-customer-db
+  namespace: keycloak-customer
+spec:
+  dbInstanceIdentifier: mzla-keycloak-customer-dev
+  multiAZ: false
+  deletionProtection: false
+  backupRetentionPeriod: 7
+  vpcSecurityGroupIDs:
+    - "REPLACE_TB_DEV_RDS_SG_KEYCLOAK_ID"

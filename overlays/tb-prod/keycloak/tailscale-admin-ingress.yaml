@@ -1,0 +1,26 @@
+# Tailnet-only Ingress for the Customer Auth Keycloak admin console/REST, mirroring
+# the Staff SSO admin model. KC_HOSTNAME_ADMIN points admin URLs here. Public
+# /admin on auth.tb.pro is denied at the edge (Cloudflare Access, Part D2).
+#
+# Deliberately absent annotations:
+#   - tailscale.com/funnel: would expose the admin UI publicly. Never on admin.
+#   - tailscale.com/tags: operator default (tag:k8s-mzla-tb-prod) is correct.
+#   - tailscale.com/hostname: tls.hosts[0] is the documented hostname source.
+# Operator appends .<TAILNET>.ts.net -> keycloak-customer-admin.tail2726a2.ts.net
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-customer-admin
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - keycloak-customer-admin
+  defaultBackend:
+    service:
+      name: keycloak-customer
+      port:
+        number: 80

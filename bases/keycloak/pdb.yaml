@@ -1,0 +1,12 @@
+# PodDisruptionBudget - base default keeps 1 pod available (dev: 2 replicas).
+# tb-prod overlay patches minAvailable to 2 (3 replicas) to match Staff SSO HA.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak-customer

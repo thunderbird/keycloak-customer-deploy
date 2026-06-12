@@ -1,0 +1,20 @@
+# Scrape Customer Auth Keycloak metrics for VictoriaMetrics.
+# Lives in the keycloak-customer namespace (not monitoring) so it stays within
+# the scoped ArgoCD AppProject; the VM operator discovers scrapes cluster-wide.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  namespaceSelector:
+    matchNames:
+      - keycloak-customer
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak-customer
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - port: management
+      interval: 30s
+      path: /metrics

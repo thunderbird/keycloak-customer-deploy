@@ -1,0 +1,161 @@
+# Customer Auth Keycloak (realm tbpro) - HA StatefulSet.
+#
+# IMAGE: custom image with the baked-in tbpro Vue/Tailwind theme, mirrored into
+# an mzla-owned ECR (issue thunderbird/platform-infrastructure#531). NOT stock
+# quay.io/keycloak. The `images:` transform in each overlay sets newName + newTag;
+# the string before ":" here is the match key.
+#
+# REALM: tbpro realm data arrives via the database (snapshot restore for dev /
+# logical replication for the prod cutover), so there is no --import-realm. The
+# custom JWT claim mappers, clients, and theme live in the DB + image.
+#
+# HOSTNAME/EXPOSURE: KC_HOSTNAME is patched per overlay. Admin access is via
+# Tailscale (overlay-managed Ingress); prod additionally sets KC_HOSTNAME_ADMIN.
+#
+# SCHEDULING: the general arm64 node group (no dedicated keycloak nodes). The
+# custom image must be multi-arch or arm64.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/instance: keycloak-customer-auth
+spec:
+  serviceName: keycloak-customer-headless
+  replicas: 2
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak-customer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak-customer
+        app.kubernetes.io/instance: keycloak-customer-auth
+    spec:
+      nodeSelector:
+        role: general
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak-customer
+      containers:
+        - name: keycloak
+          image: REPLACE_MZLA_ECR/keycloak-customer:REPLACE_MIRRORED_SHA
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          args:
+            - start
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: jgroups
+              containerPort: 7800
+              protocol: TCP
+            - name: management
+              containerPort: 9000
+              protocol: TCP
+          env:
+            # Database
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: keycloak-customer-rds-endpoint
+                  key: host
+            - name: KC_DB_URL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: keycloak-customer-rds-endpoint
+                  key: port
+            - name: KC_DB_URL_DATABASE
+              value: keycloak
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-db
+                  key: username
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-db
+                  key: password
+            # Bootstrap admin credentials
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin
+                  key: username
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin
+                  key: password
+            # Hostname/proxy. KC_HOSTNAME is patched per overlay (tailnet URL for
+            # tb-dev; auth.tb.pro for tb-prod). Plaintext HTTP behind the
+            # tunnel/ingress; TLS terminates upstream.
+            - name: KC_HOSTNAME
+              value: REPLACE_OVERLAY_KC_HOSTNAME
+            - name: KC_HOSTNAME_STRICT
+              value: "true"
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            # Clustering: Infinispan DNS_PING via the headless service
+            - name: KC_CACHE
+              value: ispn
+            - name: KC_CACHE_STACK
+              value: kubernetes
+            - name: JAVA_OPTS_APPEND
+              value: >-
+                -Xms1g -Xmx1536m
+                -Djgroups.dns.query=keycloak-customer-headless.keycloak-customer.svc.cluster.local
+            # Health and metrics
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_METRICS_ENABLED
+              value: "true"
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: management
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: management
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /opt/keycloak/data
+      volumes:
+        - name: keycloak-data
+          emptyDir: {}

@@ -1,0 +1,59 @@
+# ClusterIP service for HTTP traffic (tunnel / tailscale ingress target).
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: keycloak-customer
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+# Headless service for DNS_PING cluster discovery (JGroups).
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-customer-headless
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: keycloak-customer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+    - name: jgroups
+      port: 7800
+      targetPort: jgroups
+      protocol: TCP
+---
+# Metrics service for VictoriaMetrics scraping (management port).
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-customer-metrics
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/component: metrics
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: keycloak-customer
+  ports:
+    - name: management
+      port: 9000
+      targetPort: management
+      protocol: TCP
