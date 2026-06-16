@@ -11,5 +11,7 @@ spec:
   multiAZ: true
   deletionProtection: true
   backupRetentionPeriod: 14
+  # Avoid surprise engine bumps during the migration/cutover window (#142).
+  autoMinorVersionUpgrade: false
   vpcSecurityGroupIDs:
     - "sg-026550adef0d02cdb"

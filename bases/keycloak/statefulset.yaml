@@ -35,8 +35,15 @@ spec:
         app.kubernetes.io/name: keycloak-customer
         app.kubernetes.io/instance: keycloak-customer-auth
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       nodeSelector:
         role: general
+        # Image is arm64 (mirrored multi-arch); pin arch so it never lands on an
+        # amd64 node if a mixed pool is ever introduced.
+        kubernetes.io/arch: arm64
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: topology.kubernetes.io/zone
@@ -158,4 +165,5 @@ spec:
               mountPath: /opt/keycloak/data
       volumes:
         - name: keycloak-data
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 1Gi
