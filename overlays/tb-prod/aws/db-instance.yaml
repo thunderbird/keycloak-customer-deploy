@@ -1,5 +1,5 @@
 # tb-prod patch: Multi-AZ, deletion-protected, 14-day backups, prod SG.
-# REPLACE the SG id from: AWS_PROFILE=mzla-tb-prod pulumi stack output rds_sg_keycloak_id
+# SG id from mzla-tb-prod pulumi stack output rds_sg_keycloak_id.
 # engineVersion must match the source Customer Auth RDS for the #142 migration.
 apiVersion: rds.services.k8s.aws/v1alpha1
 kind: DBInstance
@@ -12,4 +12,4 @@ spec:
   deletionProtection: true
   backupRetentionPeriod: 14
   vpcSecurityGroupIDs:
-    - "REPLACE_TB_PROD_RDS_SG_KEYCLOAK_ID"
+    - "sg-026550adef0d02cdb"
