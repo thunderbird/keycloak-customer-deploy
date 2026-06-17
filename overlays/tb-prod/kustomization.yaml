@@ -12,8 +12,10 @@ resources:
 
 images:
   - name: REPLACE_MZLA_ECR/keycloak-customer
-    newName: REPLACE_MZLA_ECR/keycloak-customer  # set to the mzla ECR repo (issue #531)
-    newTag: REPLACE_TB_PROD_MIRRORED_SHA
+    newName: 689951664252.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
+    # Mirrored multi-arch image. Re-align this tag to the accounts-prod release
+    # at the prod cutover (#142); for now it tracks the current main build.
+    newTag: keycloak-e7ef91efd43f7619e7fc522fb64737b56efb9ffc
 
 patches:
   # AWS / RDS: HA prod DB, deletion-protected, prod SG/subnets
