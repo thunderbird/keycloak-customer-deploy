@@ -10,8 +10,8 @@ resources:
 
 images:
   - name: REPLACE_MZLA_ECR/keycloak-customer
-    newName: REPLACE_MZLA_ECR/keycloak-customer  # set to the mzla ECR repo (issue #531)
-    newTag: REPLACE_TB_DEV_MIRRORED_SHA
+    newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
+    newTag: keycloak-e7ef91efd43f7619e7fc522fb64737b56efb9ffc
 
 patches:
   # AWS / RDS env-specific values (SG id, subnet ids, identifier)
