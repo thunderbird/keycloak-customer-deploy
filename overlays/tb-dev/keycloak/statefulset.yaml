@@ -1,5 +1,7 @@
 # tb-dev patch: tailnet hostname (dev is tailnet-only; reached via the Tailscale
-# Ingress). 2 replicas (base default).
+# Ingress). 2 replicas (base default), but a smaller CPU request so both pods fit
+# the 2-node general pool (m7g.large = 2 vCPU). The base 1-cpu request left pod-1
+# Pending (Insufficient cpu); 500m fits and still bursts to the 2-cpu limit.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -11,6 +13,9 @@ spec:
     spec:
       containers:
         - name: keycloak
+          resources:
+            requests:
+              cpu: 500m
           env:
             - name: KC_HOSTNAME
               value: https://keycloak-customer-tb-dev.tail2726a2.ts.net
