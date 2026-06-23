@@ -1,7 +1,12 @@
-# tb-dev patch: tailnet hostname (dev is tailnet-only; reached via the Tailscale
-# Ingress). 2 replicas (base default), but a smaller CPU request so both pods fit
-# the 2-node general pool (m7g.large = 2 vCPU). The base 1-cpu request left pod-1
-# Pending (Insufficient cpu); 500m fits and still bursts to the 2-cpu limit.
+# tb-dev patch:
+# - tailnet hostname (dev is tailnet-only; reached via the Tailscale Ingress)
+# - 2 replicas, 500m cpu request so both pods fit the 2-node general pool
+# - DB repointed from the throwaway dev RDS to the Neon branch "mzla-tb-dev"
+#   (copy-on-write clone of stage tbpro). DIRECT endpoint (not -pooler) so
+#   Liquibase/jdbc-ping aren't on PgBouncer; sslmode=require (Neon needs TLS).
+#   valueFrom: null drops the base ConfigMap ref, so the ACK RDS/FieldExport
+#   chain is moot (the RDS is left idle for now). Creds come from the
+#   keycloak-customer-db ExternalSecret (now holding the branch keycloak_owner creds).
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -19,3 +24,11 @@ spec:
           env:
             - name: KC_HOSTNAME
               value: https://keycloak-customer-tb-dev.tail2726a2.ts.net
+            - name: KC_DB_URL_HOST
+              valueFrom: null
+              value: ep-fragrant-block-a2bv6iw5.eu-central-1.aws.neon.tech
+            - name: KC_DB_URL_PORT
+              valueFrom: null
+              value: "5432"
+            - name: KC_DB_URL_PROPERTIES
+              value: "?sslmode=require"
