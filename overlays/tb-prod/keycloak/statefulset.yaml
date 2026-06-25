@@ -1,22 +1,29 @@
-# tb-prod patch: public auth hostname (Cloudflare tunnel) + tailnet-only admin
-# hostname (KC_HOSTNAME_ADMIN). 3 replicas for HA.
+# tb-prod patch (VALIDATION state): tailnet-only hostname + the isolated
+# mzla-tb-prod Neon branch as the DB. Mirrors tb-dev. At the prod cutover (#142)
+# this flips to KC_HOSTNAME=https://auth.tb.pro (+ KC_HOSTNAME_ADMIN), the LIVE
+# Neon endpoint, 3 replicas, and the public Cloudflare/admin resources.
 #
-# KC_HOSTNAME_ADMIN points admin-console links at the tailnet host, but does NOT
-# by itself block /admin on the public host (Keycloak 26 hostname-v2). The public
-# /admin deny is enforced at the edge (Cloudflare Access) - see Part D2 hardening.
+# DIRECT Neon endpoint (not -pooler) so Liquibase isn't on PgBouncer; sslmode=require
+# (Neon needs TLS). Creds come from the keycloak-customer-db ExternalSecret
+# (mzla/tb-prod/* -> branch keycloak_owner creds).
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: keycloak-customer
   namespace: keycloak-customer
 spec:
-  replicas: 3
+  replicas: 2
   template:
     spec:
       containers:
         - name: keycloak
+          resources:
+            requests:
+              cpu: 500m
           env:
             - name: KC_HOSTNAME
-              value: https://auth.tb.pro
-            - name: KC_HOSTNAME_ADMIN
-              value: https://keycloak-customer-admin.tail2726a2.ts.net
+              value: https://keycloak-customer-tb-prod.tail2726a2.ts.net
+            - name: KC_DB_URL_HOST
+              value: ep-red-grass-a2xt5722.eu-central-1.aws.neon.tech
+            - name: KC_DB_URL_PROPERTIES
+              value: "?sslmode=require"
