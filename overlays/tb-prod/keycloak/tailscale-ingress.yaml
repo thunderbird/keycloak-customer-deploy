@@ -1,0 +1,24 @@
+# Tailnet-only Ingress for the tb-prod Customer Auth Keycloak VALIDATION deployment
+# (against the isolated mzla-tb-prod Neon branch). The whole service is tailnet-
+# private, like tb-dev -- no public Cloudflare tunnel yet, so /admin is never public.
+# At the prod cutover (#142) public auth moves to the Cloudflare tunnel and admin
+# access narrows to the tailnet-only tailscale-admin-ingress.yaml.
+#
+# Operator appends .<TAILNET>.ts.net -> keycloak-customer-tb-prod.tail2726a2.ts.net
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-customer-tb-prod
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - keycloak-customer-tb-prod
+  defaultBackend:
+    service:
+      name: keycloak-customer
+      port:
+        number: 80

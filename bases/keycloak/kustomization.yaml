@@ -6,7 +6,6 @@ resources:
   - statefulset.yaml
   - service.yaml
   - pdb.yaml
-  - rds-endpoint-configmap.yaml
   - db-externalsecret.yaml
   - admin-externalsecret.yaml
   - vmservicescrape.yaml

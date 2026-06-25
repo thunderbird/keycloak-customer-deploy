@@ -1,0 +1,21 @@
+# Assigns the dedicated pod security group to the keycloak-customer pods so they can
+# reach Neon over the dedicated mzla-tb-prod-keycloak-neondb-privatelink endpoint SG.
+# Under POD_SECURITY_GROUP_ENFORCING_MODE=strict the listed SGs REPLACE the node SG,
+# so both are required (and they match the live keycloak pod ENIs):
+#   - sg-08711bcc50c7b1e18 : eks-cluster-sg-mzla-eks-tb-prod01 (cluster comms /
+#       kubelet probes :9000 / CoreDNS)
+#   - sg-08319d6a808f5ad35 : mzla-tb-prod-keycloak-customer-pod (Neon PrivateLink
+#       client; from the mzla-tb-prod pulumi output keycloak_customer_pod_sg_id)
+apiVersion: vpcresources.k8s.aws/v1beta1
+kind: SecurityGroupPolicy
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak-customer
+  securityGroups:
+    groupIds:
+      - sg-08711bcc50c7b1e18
+      - sg-08319d6a808f5ad35

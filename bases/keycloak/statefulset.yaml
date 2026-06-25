@@ -5,12 +5,14 @@
 # quay.io/keycloak. The `images:` transform in each overlay sets newName + newTag;
 # the string before ":" here is the match key.
 #
-# REALM: tbpro realm data arrives via the database (snapshot restore for dev /
-# logical replication for the prod cutover), so there is no --import-realm. The
-# custom JWT claim mappers, clients, and theme live in the DB + image.
+# REALM: tbpro realm data lives in the SHARED Neon database (source ECS and the
+# EKS target use the same DB), so there is no --import-realm and no data migration
+# -- the cutover is a traffic flip. Validation runs against isolated Neon branches.
+# The custom JWT claim mappers, clients, and theme live in the DB + image.
 #
 # HOSTNAME/EXPOSURE: KC_HOSTNAME is patched per overlay. Admin access is via
-# Tailscale (overlay-managed Ingress); prod additionally sets KC_HOSTNAME_ADMIN.
+# Tailscale (overlay-managed Ingress); dev + prod are tailnet-only today. At the
+# prod cutover (#142) tb-prod adds the public Cloudflare tunnel + KC_HOSTNAME_ADMIN.
 #
 # SCHEDULING: the general arm64 node group (no dedicated keycloak nodes). The
 # custom image must be multi-arch or arm64.
@@ -76,16 +78,12 @@ spec:
             # Database
             - name: KC_DB
               value: postgres
+            # Shared Neon over PrivateLink. DB host is set per-overlay (each env's
+            # Neon endpoint); the overlay also adds KC_DB_URL_PROPERTIES=?sslmode=require.
             - name: KC_DB_URL_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: keycloak-customer-rds-endpoint
-                  key: host
+              value: REPLACE_OVERLAY_KC_DB_HOST
             - name: KC_DB_URL_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: keycloak-customer-rds-endpoint
-                  key: port
+              value: "5432"
             - name: KC_DB_URL_DATABASE
               value: keycloak
             - name: KC_DB_USERNAME

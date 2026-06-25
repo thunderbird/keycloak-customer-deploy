@@ -6,23 +6,30 @@ clusters via ArgoCD. Migration plan & target architecture:
 [`platform-infrastructure/docs/keycloak-customer-auth-migration.md`](https://github.com/thunderbird/platform-infrastructure/blob/main/docs/keycloak-customer-auth-migration.md).
 Epic: [platform-infrastructure#132](https://github.com/thunderbird/platform-infrastructure/issues/132).
 
+> **Database is shared Neon, not RDS.** Source ECS and the EKS target use the same
+> shared Neon Postgres DB, reached over PrivateLink. There is **no data migration** —
+> the prod cutover is a traffic flip. Validation runs against isolated Neon branches
+> (`mzla-tb-{dev,prod}`). The vestigial ACK-RDS machinery was removed
+> ([platform-infrastructure#579](https://github.com/thunderbird/platform-infrastructure/issues/579)).
+
 ## Layout
 
 ```
 bases/
-  aws/        ACK RDS: DBInstance, DBSubnetGroup, FieldExport
-  keycloak/   namespace, StatefulSet, services, PDB, RDS-endpoint ConfigMap,
+  keycloak/   namespace, StatefulSet, services (incl. metrics), PDB,
               db/admin ExternalSecrets, VMServiceScrape
 overlays/
-  tb-dev/     tailnet-only (Tailscale Ingress); single-AZ dev DB
-  tb-prod/    public Cloudflare tunnel (auth) + tailnet admin Ingress; Multi-AZ DB
+  tb-dev/     tailnet-only (Tailscale Ingress); Neon branch mzla-tb-dev; 2 replicas
+  tb-prod/    tailnet-only validation; Neon branch mzla-tb-prod; 2 replicas
+              (public Cloudflare tunnel + tailnet admin + 3 replicas are kept in the
+              overlay dir but unreferenced until the cutover, #142)
 ```
 
 The ArgoCD app-of-apps for each cluster lives in `platform-infrastructure`
 (`argocd/tb-{dev,prod}/apps/keycloak-customer.yaml`) and points at
-`overlays/<cluster>`. The cluster's Pulumi stack provides the `ack-rds` IRSA role
-and the Keycloak RDS security group; the ACK RDS controller is deployed from
-`platform-infrastructure`.
+`overlays/<cluster>`. The cluster's Pulumi stack (`mzla-tb-{dev,prod}`, Phase 4e)
+provides the Keycloak **Neon PrivateLink endpoint SG + pod SG + IRSA**; the pod SG
+is assigned to the pods via the overlay's `SecurityGroupPolicy`.
 
 ## Build / validate
 
@@ -34,30 +41,36 @@ kustomize build overlays/tb-dev        # or a single overlay
 ## Exposure model
 
 - **Admin is never public.** It is reached over **Tailscale**, like the Staff SSO
-  Keycloak. tb-dev is tailnet-only (whole service). tb-prod exposes only the
-  customer auth host publicly via Cloudflare tunnel; the admin console/REST is on
-  the tailnet (`KC_HOSTNAME_ADMIN`), with public `/admin` denied at the edge.
-- **Realm `tbpro` arrives via the database** (snapshot restore for dev / logical
-  replication for the prod cutover) — there is no `--import-realm`.
+  Keycloak. Both dev and prod are tailnet-only today (whole service). At the prod
+  cutover (#142) tb-prod adds a public Cloudflare tunnel for the auth host, with the
+  admin console/REST kept on the tailnet (`KC_HOSTNAME_ADMIN`) and public `/admin`
+  denied at the edge (Cloudflare Access).
+- **Realm `tbpro` lives in the shared Neon DB** (validated via isolated Neon
+  branches) — there is no `--import-realm` and no data migration.
 
-## Placeholders to resolve before deploy
+## DB connectivity (Neon over PrivateLink)
 
-Per overlay (`overlays/<cluster>/`), replace:
+The overlay's `keycloak/statefulset.yaml` sets `KC_DB_URL_HOST` to the env's Neon
+endpoint (the `mzla-tb-{dev,prod}` branch today) + `KC_DB_URL_PROPERTIES=?sslmode=require`.
+The pods reach Neon over the manually-created Neon interface endpoints, gated by the
+dedicated `mzla-tb-{dev,prod}-keycloak-neondb-privatelink` endpoint SG; the pods carry
+the dedicated pod SG via `keycloak/securitygrouppolicy.yaml`.
 
-| Token | Source |
+## Placeholders / per-env values
+
+| Token / value | Source |
 |-------|--------|
-| `REPLACE_MZLA_ECR/keycloak-customer` + `REPLACE_*_MIRRORED_SHA` (`kustomization.yaml` `images:`) | mirrored image ([platform-infrastructure#531](https://github.com/thunderbird/platform-infrastructure/issues/531)) |
-| `REPLACE_*_RDS_SG_KEYCLOAK_ID` (`aws/db-instance.yaml`) | `pulumi stack output rds_sg_keycloak_id` |
-| `REPLACE_*_PRIVATE_SUBNET_A/B` (`aws/db-subnet-group.yaml`) | `pulumi stack output private_subnet_ids` |
-| tb-dev `KC_HOSTNAME` tailnet host / tb-prod `auth.tb.pro` + Cloudflare zone | confirm tailnet name + that `tb.pro` is a managed Cloudflare zone |
+| `REPLACE_MZLA_ECR/keycloak-customer` (`kustomization.yaml` `images:`) | the per-account mzla ECR mirror (done, [platform-infrastructure#558](https://github.com/thunderbird/platform-infrastructure/pull/558)); each overlay sets `newName` + `newTag` |
+| `keycloak/securitygrouppolicy.yaml` `groupIds` | the cluster's eks-cluster-sg + `pulumi stack output keycloak_customer_pod_sg_id` (`mzla-tb-{dev,prod}`) |
+| `KC_DB_URL_HOST` (overlay `keycloak/statefulset.yaml`) | the env's Neon endpoint (branch today; live shared endpoint at cutover) |
 
 Secrets (AWS Secrets Manager, per account, eu-central-1) referenced by the
 ExternalSecrets: `mzla/<env>/keycloak-customer-db` and
 `mzla/<env>/keycloak-customer-admin` (`{username, password}`).
-`mzla/shared-services/cloudflare-operator` already exists (read cross-account).
+`mzla/shared-services/cloudflare-operator` already exists (read cross-account; used by the cutover Cloudflare resources).
 
-## Not yet included (follow-ups)
+## Not yet included (cutover follow-ups, #142)
 
-- Public `/admin` deny for tb-prod (Cloudflare Access) — gates the prod cutover.
-- DR backup CronJob (port from Staff SSO `argocd/keycloak/dr-backup-*`) before the
-  [#142](https://github.com/thunderbird/platform-infrastructure/issues/142) cutover.
+- Public Cloudflare tunnel (`auth.tb.pro`) + tailnet admin ingress + 3 replicas (files present, unreferenced).
+- Public `/admin` deny for tb-prod (Cloudflare Access).
+- Repoint `KC_DB_URL_HOST` from the validation branch to the live shared Neon endpoint.
