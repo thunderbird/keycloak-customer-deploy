@@ -18,6 +18,24 @@ spec:
     spec:
       containers:
         - name: keycloak
+          # Override the image entrypoint (scripts/entry-keycloak.sh hardcodes
+          # `--proxy-headers forwarded`, a CLI flag that overrides KC_PROXY_HEADERS
+          # and expects the RFC 7239 Forwarded header). The Tailscale ingress only
+          # sends X-Forwarded-* headers, so keycloak must use `xforwarded` or it
+          # ignores the forwarded scheme -> non-secure context -> cross-site OIDC
+          # cookies dropped (cookie_not_found / invalid_code). This replicates the
+          # entrypoint (background start + MFA reconcile) but with xforwarded.
+          # Proper fix: make entry-keycloak.sh honor KC_PROXY_HEADERS (image change).
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /opt/keycloak/bin/kc.sh start --http-enabled=true --proxy-headers xforwarded &
+              KC_PID=$!
+              trap 'kill -TERM "$KC_PID" 2>/dev/null' TERM INT
+              /bin/bash /scripts/apply-mfa-config.sh &
+              wait "$KC_PID"
+          args: []
           resources:
             requests:
               cpu: 500m
