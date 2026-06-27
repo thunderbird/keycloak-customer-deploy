@@ -42,7 +42,10 @@ spec:
               set -euo pipefail
               src=/opt/keycloak/themes/tbpro/login
               dst=/patched-login
-              cp -a "$src/." "$dst/"
+              # cp -r (not -a): the emptyDir mount root rejects timestamp
+              # preservation ("Operation not permitted"), which -a would do and
+              # set -e would then abort on. Theme files only need to be readable.
+              cp -r "$src/." "$dst/"
               # ?no_esc on Keycloak-generated server URLs embedded in JS strings
               # (url.*, p.loginUrl, client.baseUrl). These are server-provided URL
               # values, not user input, so disabling HTML escaping is safe here.
