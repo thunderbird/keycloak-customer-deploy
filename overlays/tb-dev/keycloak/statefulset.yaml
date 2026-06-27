@@ -13,7 +13,12 @@ metadata:
   name: keycloak-customer
   namespace: keycloak-customer
 spec:
-  replicas: 2
+  # Single replica for the dev validation (matches the working ECS keycloak,
+  # desired_count=1). With 2 replicas and no sticky sessions, the auth session
+  # created on one pod (GET /auth) isn't found when the login POST lands on the
+  # other pod -> cookie_not_found / invalid_code on the cross-app OIDC login.
+  # HA (2 replicas + sticky sessions / cookie affinity) is a follow-up for prod.
+  replicas: 1
   template:
     spec:
       containers:
