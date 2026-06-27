@@ -16,10 +16,47 @@ spec:
   # Clustered (base replicas: 2, Infinispan DNS_PING). The single-replica
   # workaround tried earlier was a misdiagnosis: the cookie_not_found / invalid_code
   # was NOT cross-pod session loss but the tbpro theme escaping the loginAction
-  # ('&amp;' -> dropped 'execution' param -> 400), fixed by the login.ftl override
+  # ('&amp;' -> dropped 'execution' param -> 400), fixed by the theme override
   # below. Infinispan shares auth sessions across pods, so clustered login works.
   template:
     spec:
+      # tbpro theme override: Keycloak 26.5.7 (this image, pulled via the moving
+      # quay :26.5 tag) HTML-escapes Freemarker output, so the theme's
+      # `formAction: '${url.loginAction}'` inside window._page renders with '&amp;'.
+      # The Vue login app POSTs that URL verbatim, Keycloak drops the 'execution'
+      # param -> 400 / cookie_not_found. Every flow that embeds an action URL in a
+      # window._page JS string is affected (login, update-password, OTP, reset,
+      # verify-email, register, ...), so we patch the WHOLE login theme dir, not
+      # just login.ftl: copy the baked theme to an emptyDir, add ?no_esc to the
+      # JS-embedded server URLs, and mount that over the login dir. The stage ECS
+      # image runs an older 26.5.x that did not escape, so it is unaffected (for
+      # now). Durable fix: thunderbird-accounts theme ?no_esc + pin the keycloak
+      # base tag -- this override is dropped once that image ships.
+      initContainers:
+        - name: patch-login-theme
+          image: REPLACE_MZLA_ECR/keycloak-customer
+          command:
+            - /usr/bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              src=/opt/keycloak/themes/tbpro/login
+              dst=/patched-login
+              cp -a "$src/." "$dst/"
+              # ?no_esc on Keycloak-generated server URLs embedded in JS strings
+              # (url.*, p.loginUrl, client.baseUrl). These are server-provided URL
+              # values, not user input, so disabling HTML escaping is safe here.
+              for f in "$dst"/*.ftl; do
+                sed -i -E \
+                  -e 's/\$\{(url\.[A-Za-z0-9]+)\}/${\1?no_esc}/g' \
+                  -e 's/\$\{(p\.loginUrl)\}/${\1?no_esc}/g' \
+                  -e 's/\$\{(client\.baseUrl)\}/${\1?no_esc}/g' \
+                  "$f"
+              done
+              echo "patched login theme: $(grep -lE '\?no_esc' "$dst"/*.ftl | wc -l) ftl files touched"
+          volumeMounts:
+            - name: patched-login
+              mountPath: /patched-login
       containers:
         - name: keycloak
           # Override the image entrypoint (scripts/entry-keycloak.sh hardcodes
@@ -54,20 +91,11 @@ spec:
               value: "5432"
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
-          # Override the baked tbpro login.ftl with a copy that adds ?no_esc to
-          # the URL fields embedded in window._page (loginAction et al). Keycloak
-          # 26.5.7 (this image, pulled via the moving quay :26.5 tag) HTML-escapes
-          # Freemarker output, so '${url.loginAction}' renders with '&amp;'; the Vue
-          # login app then POSTs to a URL with literal '&amp;' -> Keycloak drops the
-          # 'execution' param -> 400 / cookie_not_found. The stage ECS image is an
-          # older 26.5.x that did not escape, so it is unaffected (for now).
-          # Real fix is in thunderbird-accounts (theme ?no_esc + pin the keycloak
-          # base tag); this subPath override unblocks dev until that image ships.
+          # Mount the patched login theme (built by the patch-login-theme
+          # initContainer) over the baked one.
           volumeMounts:
-            - name: tbpro-login-override
-              mountPath: /opt/keycloak/themes/tbpro/login/login.ftl
-              subPath: login.ftl
+            - name: patched-login
+              mountPath: /opt/keycloak/themes/tbpro/login
       volumes:
-        - name: tbpro-login-override
-          configMap:
-            name: keycloak-tbpro-login-override
+        - name: patched-login
+          emptyDir: {}
