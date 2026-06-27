@@ -9,17 +9,6 @@ resources:
   - keycloak/tailscale-ingress.yaml
   - keycloak/securitygrouppolicy.yaml
 
-# Patched tbpro login.ftl (?no_esc on the window._page URL fields) mounted over
-# the baked theme via subPath in the StatefulSet patch. Stable name (no hash
-# suffix) so the volume reference in the patch resolves. Drop once the
-# thunderbird-accounts image carries the fix.
-configMapGenerator:
-  - name: keycloak-tbpro-login-override
-    files:
-      - login.ftl=keycloak/tbpro-login.ftl
-generatorOptions:
-  disableNameSuffixHash: true
-
 images:
   - name: REPLACE_MZLA_ECR/keycloak-customer
     newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
