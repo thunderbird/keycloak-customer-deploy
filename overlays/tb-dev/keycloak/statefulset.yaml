@@ -13,63 +13,33 @@ metadata:
   name: keycloak-customer
   namespace: keycloak-customer
 spec:
-  # Clustered (base replicas: 2, Infinispan DNS_PING). The single-replica
-  # workaround tried earlier was a misdiagnosis: the cookie_not_found / invalid_code
-  # was NOT cross-pod session loss but the tbpro theme escaping the loginAction
-  # ('&amp;' -> dropped 'execution' param -> 400), fixed by the theme override
-  # below. Infinispan shares auth sessions across pods, so clustered login works.
+  # Clustered (base replicas: 2, Infinispan DNS_PING).
   template:
     spec:
-      # tbpro theme override: Keycloak 26.5.7 (this image, pulled via the moving
-      # quay :26.5 tag) HTML-escapes Freemarker output, so the theme's
-      # `formAction: '${url.loginAction}'` inside window._page renders with '&amp;'.
-      # The Vue login app POSTs that URL verbatim, Keycloak drops the 'execution'
-      # param -> 400 / cookie_not_found. Every flow that embeds an action URL in a
-      # window._page JS string is affected (login, update-password, OTP, reset,
-      # verify-email, register, ...), so we patch the WHOLE login theme dir, not
-      # just login.ftl: copy the baked theme to an emptyDir, add ?no_esc to the
-      # JS-embedded server URLs, and mount that over the login dir. The stage ECS
-      # image runs an older 26.5.x that did not escape, so it is unaffected (for
-      # now). Durable fix: thunderbird-accounts theme ?no_esc + pin the keycloak
-      # base tag -- this override is dropped once that image ships.
-      initContainers:
-        - name: patch-login-theme
-          image: REPLACE_MZLA_ECR/keycloak-customer
-          command:
-            - /usr/bin/bash
-            - -c
-            - |
-              set -euo pipefail
-              src=/opt/keycloak/themes/tbpro/login
-              dst=/patched-login
-              # cp -r (not -a): the emptyDir mount root rejects timestamp
-              # preservation ("Operation not permitted"), which -a would do and
-              # set -e would then abort on. Theme files only need to be readable.
-              cp -r "$src/." "$dst/"
-              # ?no_esc on Keycloak-generated server URLs embedded in JS strings
-              # (url.*, p.loginUrl, client.baseUrl). These are server-provided URL
-              # values, not user input, so disabling HTML escaping is safe here.
-              for f in "$dst"/*.ftl; do
-                sed -i -E \
-                  -e 's/\$\{(url\.[A-Za-z0-9]+)\}/${\1?no_esc}/g' \
-                  -e 's/\$\{(p\.loginUrl)\}/${\1?no_esc}/g' \
-                  -e 's/\$\{(client\.baseUrl)\}/${\1?no_esc}/g' \
-                  "$f"
-              done
-              echo "patched login theme: $(grep -lE '\?no_esc' "$dst"/*.ftl | wc -l) ftl files touched"
-          volumeMounts:
-            - name: patched-login
-              mountPath: /patched-login
       containers:
         - name: keycloak
-          # Override the image entrypoint (scripts/entry-keycloak.sh hardcodes
-          # `--proxy-headers forwarded`, a CLI flag that overrides KC_PROXY_HEADERS
-          # and expects the RFC 7239 Forwarded header). The Tailscale ingress only
-          # sends X-Forwarded-* headers, so keycloak must use `xforwarded` or it
-          # ignores the forwarded scheme -> non-secure context -> cross-site OIDC
-          # cookies dropped (cookie_not_found / invalid_code). This replicates the
-          # entrypoint (background start + MFA reconcile) but with xforwarded.
-          # Proper fix: make entry-keycloak.sh honor KC_PROXY_HEADERS (image change).
+          # THE actual dev login fix: --proxy-headers xforwarded.
+          #
+          # The image entrypoint (scripts/entry-keycloak.sh) hardcodes
+          # `kc.sh start ... --proxy-headers forwarded`, a CLI flag that overrides
+          # the base KC_PROXY_HEADERS=xforwarded env and makes Keycloak read the
+          # RFC 7239 `Forwarded` header. The Tailscale ingress sends only
+          # X-Forwarded-* headers, so Keycloak never sees the forwarded https
+          # scheme -> non-secure context -> the AUTH_SESSION_ID cookie is set
+          # SameSite=None without Secure -> the browser refuses to store it ->
+          # the login POST has no auth-session cookie -> 400 "Cookie not found"
+          # (surfaced as cookie_not_found / invalid_code). Running with
+          # `xforwarded` makes Keycloak read X-Forwarded-Proto=https -> secure
+          # context -> Secure cookie -> stored & sent -> login completes.
+          #
+          # (The `&amp;` HTML-escaping of loginAction in the tbpro theme was a red
+          # herring: Keycloak recovers `execution` from the cookie, so it is
+          # harmless -- stage renders the identical `&amp;` and logs in fine. The
+          # earlier theme-?no_esc initContainer was therefore removed.)
+          #
+          # Durable fix: make entry-keycloak.sh honor KC_PROXY_HEADERS (default
+          # `forwarded`) so this command override can be dropped once the image
+          # ships -- thunderbird-accounts change.
           command:
             - /bin/bash
             - -c
@@ -94,11 +64,3 @@ spec:
               value: "5432"
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
-          # Mount the patched login theme (built by the patch-login-theme
-          # initContainer) over the baked one.
-          volumeMounts:
-            - name: patched-login
-              mountPath: /opt/keycloak/themes/tbpro/login
-      volumes:
-        - name: patched-login
-          emptyDir: {}
