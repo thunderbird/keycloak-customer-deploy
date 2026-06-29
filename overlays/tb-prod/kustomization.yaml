@@ -4,10 +4,11 @@ kind: Kustomization
 
 namespace: keycloak-customer
 
-# tb-prod is the prod-cutover scaffolding for the public Customer Auth host
-# (Mode A: public internet-facing NLB terminates TLS with an ACM cert; Keycloak
-# keeps --proxy-headers xforwarded). The public auth host is served by the NLB
-# (keycloak/loadbalancer-service.yaml); the admin console is tailnet-only
+# tb-prod is the prod-cutover scaffolding for the public Customer Auth host: a public
+# internet-facing ALB Ingress (keycloak/public-ingress.yaml) whose TLS cert the AWS LB
+# Controller auto-creates + DNS-validates in ACM (EnableCertificateManagement); Keycloak
+# keeps KC_PROXY_HEADERS=xforwarded so it trusts the ALB X-Forwarded-* headers. The public
+# auth host is served by the ALB Ingress; the admin console is tailnet-only
 # (keycloak/tailscale-admin-ingress.yaml); minAvailable-2 PDB (keycloak/pdb.yaml).
 #
 # The Cloudflare tunnel resources (keycloak/cloudflare-tunnel.yaml,
@@ -16,11 +17,11 @@ namespace: keycloak-customer
 
 resources:
   - ../../bases
-  # tailnet LOGIN ingress dropped: KC_HOSTNAME is now the public NLB host
+  # tailnet LOGIN ingress dropped: KC_HOSTNAME is now the public ALB host
   # (auth.tb-prod.thunderbird.dev) with KC_HOSTNAME_STRICT=true, so the old
   # keycloak-customer-tb-prod tailnet host can't serve login. Admin stays tailnet:
   - keycloak/tailscale-admin-ingress.yaml
-  - keycloak/loadbalancer-service.yaml
+  - keycloak/public-ingress.yaml
   - keycloak/securitygrouppolicy.yaml
 
 images:

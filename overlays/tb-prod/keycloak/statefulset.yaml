@@ -1,9 +1,9 @@
-# tb-prod patch (PUBLIC-CUTOVER scaffolding, Mode A):
+# tb-prod patch (PUBLIC-CUTOVER scaffolding):
 #   - KC_HOSTNAME = the public auth host (https://auth.tb-prod.thunderbird.dev).
-#     The internet-facing
-#     NLB (keycloak/loadbalancer-service.yaml) terminates TLS with an ACM cert and
-#     forwards plaintext to :8080; KC_PROXY_HEADERS=xforwarded (base) makes
-#     Keycloak trust X-Forwarded-* so it emits correct https://<auth-host> URLs.
+#     The internet-facing ALB Ingress (keycloak/public-ingress.yaml) terminates TLS
+#     with an LB-controller-managed ACM cert and forwards plaintext to :8080;
+#     KC_PROXY_HEADERS=xforwarded (base) makes Keycloak trust the ALB's X-Forwarded-*
+#     headers so it emits correct https://<auth-host> URLs.
 #   - KC_HOSTNAME_ADMIN = the tailnet admin host. Admin console/REST URLs resolve
 #     to the Tailscale Ingress (keycloak/tailscale-admin-ingress.yaml ->
 #     keycloak-customer-admin.tail2726a2.ts.net); public /admin is denied at the

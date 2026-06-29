@@ -1,0 +1,71 @@
+# Public, internet-facing ALB Ingress for the Customer Auth Keycloak (auth host).
+#
+# This REPLACES the earlier Mode A public NLB. The AWS Load Balancer Controller
+# (chart v3.4.x, SA aws-lb-controller in kube-system) provisions an internet-facing
+# ALB with an HTTPS:443 listener and, via its EnableCertificateManagement feature,
+# auto-creates + DNS-validates an ACM certificate for the Ingress host -- writing the
+# validation record into the delegated tb-prod.thunderbird.dev Route53 sub-zone
+# (ACK-managed HostedZone) and waiting for ISSUED before attaching it. NO cert ARN is
+# hardcoded here (annotating certificate-arn would take precedence and disable the
+# managed cert). The feature gate (controllerConfig.featureGates.EnableCertificateManagement)
+# and the matching IAM (ACM + Route53 ChangeResourceRecordSets on the sub-zone) are
+# enabled on the LB controller in platform-infrastructure (#613/#625).
+#
+# TLS terminates at the ALB; the ALB forwards plaintext HTTP to the keycloak-customer
+# ClusterIP service :80 -> pod :8080. Keycloak runs with KC_PROXY_HEADERS=xforwarded
+# (base statefulset), so it trusts the X-Forwarded-* headers the ALB injects and emits
+# correct https://auth.tb-prod.thunderbird.dev URLs. KC_HOSTNAME_STRICT=true pins it.
+#
+# This is the PUBLIC user-facing auth host only. The admin console is reached over the
+# tailnet (keycloak/tailscale-admin-ingress.yaml); KC_HOSTNAME_ADMIN points admin URLs
+# there. Public /admin is denied at the edge (Part D2). The superseded Cloudflare tunnel
+# resources stay staged-unreferenced. Prod traffic cutover is human-gated (#142).
+#
+# DNS: AWS external-dns (#625) publishes auth.tb-prod.thunderbird.dev -> the ALB from
+# the external-dns.alpha.kubernetes.io/hostname annotation, into the sub-zone.
+#
+# target-type ip routes directly to pod IPs (VPC CNI), avoiding the extra node hop.
+#
+# PREREQUISITE (cutover, #142): under strict pod-SG mode the keycloak pod SG replaces
+# the node SG, so the ALB (target-type ip) can only reach the pods if that pod SG allows
+# ingress on 8080 (data) and 9000 (ALB health check) from the ALB SG / tb-prod VPC.
+# Manually-assigned pod SGs are NOT managed by the LB controller -- add those ingress
+# rules in the mzla-tb-prod Pulumi before targets go live, or registration stays Unhealthy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-customer-public
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/component: public-lb
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # EnableCertificateManagement: the controller creates + DNS-validates the ACM cert
+    # for the Ingress host(s) and attaches it to the HTTPS listener. Do NOT add
+    # certificate-arn (it would take precedence and disable the managed cert).
+    alb.ingress.kubernetes.io/create-acm-cert: "true"
+    # ALB does TLS->plaintext; backend speaks HTTP to the keycloak service.
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    # Health check on the Keycloak management port (9000): /health/ready.
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: "9000"
+    alb.ingress.kubernetes.io/healthcheck-path: /health/ready
+    # external-dns (#625) publishes this A/ALIAS record into tb-prod.thunderbird.dev.
+    external-dns.alpha.kubernetes.io/hostname: auth.tb-prod.thunderbird.dev
+spec:
+  ingressClassName: alb
+  rules:
+    - host: auth.tb-prod.thunderbird.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-customer
+                port:
+                  number: 80
