@@ -1,0 +1,51 @@
+# Public internet-facing NLB for the Customer Auth Keycloak (auth host) -- Mode A.
+#
+# TLS TERMINATION: the NLB terminates TLS using an ACM cert (ssl-cert), listening
+# on :443 and forwarding plaintext to the keycloak pods on :8080. Keycloak runs
+# with KC_PROXY_HEADERS=xforwarded (see base statefulset) so it trusts the
+# X-Forwarded-* headers the NLB injects and builds correct https://auth.<domain>
+# URLs. KC_HOSTNAME_STRICT=true pins the hostname to KC_HOSTNAME.
+#
+# This is the PUBLIC user-facing auth host only. The admin console is reached over
+# the tailnet (keycloak/tailscale-admin-ingress.yaml); public /admin is denied at
+# the edge (Part D2). This replaces the Cloudflare tunnel path -- the tunnel
+# resources stay staged-unreferenced.
+#
+# DNS: external-dns publishes REPLACE_AUTH_HOST -> NLB. Prod traffic cutover is
+# human-gated (#142).
+#
+# target-type ip routes directly to pod IPs (VPC CNI); avoids the extra node hop.
+# backend-protocol tcp: the NLB does TLS->TCP, Keycloak speaks plaintext HTTP on
+# the backend (KC_HTTP_ENABLED=true).
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-customer-public
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/component: public-lb
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # TLS terminates at the NLB with this ACM cert on the :443 listener.
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: REPLACE_ACM_CERT_ARN
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    # NLB does TLS->plaintext; backend speaks plain TCP/HTTP to Keycloak :8080.
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "9000"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /health/ready
+    external-dns.alpha.kubernetes.io/hostname: REPLACE_AUTH_HOST
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: keycloak-customer
+  ports:
+    # Public 443 (NLB TLS listener) -> pod http :8080.
+    - name: https
+      port: 443
+      targetPort: http
+      protocol: TCP

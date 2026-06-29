@@ -1,7 +1,16 @@
-# tb-prod patch (VALIDATION state): tailnet-only hostname + the isolated
-# mzla-tb-prod Neon branch as the DB. Mirrors tb-dev. At the prod cutover (#142)
-# this flips to KC_HOSTNAME=https://auth.tb.pro (+ KC_HOSTNAME_ADMIN), the LIVE
-# Neon endpoint, 3 replicas, and the public Cloudflare/admin resources.
+# tb-prod patch (PUBLIC-CUTOVER scaffolding, Mode A):
+#   - KC_HOSTNAME = the public auth host (REPLACE_AUTH_HOST). The internet-facing
+#     NLB (keycloak/loadbalancer-service.yaml) terminates TLS with an ACM cert and
+#     forwards plaintext to :8080; KC_PROXY_HEADERS=xforwarded (base) makes
+#     Keycloak trust X-Forwarded-* so it emits correct https://<auth-host> URLs.
+#   - KC_HOSTNAME_ADMIN = the tailnet admin host. Admin console/REST URLs resolve
+#     to the Tailscale Ingress (keycloak/tailscale-admin-ingress.yaml ->
+#     keycloak-customer-admin.tail2726a2.ts.net); public /admin is denied at the
+#     edge (Part D2).
+#   - 3 replicas to match Staff SSO HA (PDB minAvailable 2, keycloak/pdb.yaml).
+#
+# Still pointed at the isolated mzla-tb-prod Neon BRANCH for validation; the LIVE
+# Neon endpoint flip + actual traffic cutover are human-gated (#142).
 #
 # DIRECT Neon endpoint (not -pooler) so Liquibase isn't on PgBouncer; sslmode=require
 # (Neon needs TLS). Creds come from the keycloak-customer-db ExternalSecret
@@ -12,7 +21,7 @@ metadata:
   name: keycloak-customer
   namespace: keycloak-customer
 spec:
-  replicas: 2
+  replicas: 3
   template:
     spec:
       containers:
@@ -21,8 +30,12 @@ spec:
             requests:
               cpu: 500m
           env:
+            # Public auth host, served by the internet-facing NLB (TLS at the NLB).
             - name: KC_HOSTNAME
-              value: https://keycloak-customer-tb-prod.tail2726a2.ts.net
+              value: REPLACE_AUTH_HOST
+            # Admin console/REST host -> tailnet Ingress (tailscale-admin-ingress.yaml).
+            - name: KC_HOSTNAME_ADMIN
+              value: https://keycloak-customer-admin.tail2726a2.ts.net
             - name: KC_DB_URL_HOST
               value: ep-red-grass-a2xt5722.eu-central-1.aws.neon.tech
             - name: KC_DB_URL_PROPERTIES

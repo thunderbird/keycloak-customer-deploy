@@ -4,16 +4,21 @@ kind: Kustomization
 
 namespace: keycloak-customer
 
-# tb-prod is currently a TAILNET-ONLY validation deployment against the isolated
-# mzla-tb-prod Neon branch (mirrors tb-dev). The public-cutover resources
-# (keycloak/cloudflare-tunnel.yaml, keycloak/cloudflare-externalsecret.yaml,
-# keycloak/tailscale-admin-ingress.yaml) and the 3-replica / minAvailable-2 PDB
-# patch (keycloak/pdb.yaml) are kept in this directory but intentionally NOT
-# referenced yet -- they are wired in at the prod cutover (#142).
+# tb-prod is the prod-cutover scaffolding for the public Customer Auth host
+# (Mode A: public internet-facing NLB terminates TLS with an ACM cert; Keycloak
+# keeps --proxy-headers xforwarded). The public auth host is served by the NLB
+# (keycloak/loadbalancer-service.yaml); the admin console is tailnet-only
+# (keycloak/tailscale-admin-ingress.yaml); minAvailable-2 PDB (keycloak/pdb.yaml).
+#
+# The Cloudflare tunnel resources (keycloak/cloudflare-tunnel.yaml,
+# keycloak/cloudflare-externalsecret.yaml) are the superseded edge-TLS path and
+# stay staged-unreferenced. Actual prod traffic cutover is human-gated (#142).
 
 resources:
   - ../../bases
   - keycloak/tailscale-ingress.yaml
+  - keycloak/tailscale-admin-ingress.yaml
+  - keycloak/loadbalancer-service.yaml
   - keycloak/securitygrouppolicy.yaml
 
 images:
@@ -24,8 +29,10 @@ images:
     newTag: keycloak-e7ef91efd43f7619e7fc522fb64737b56efb9ffc
 
 patches:
-  # Keycloak workload: tailnet hostname + Neon branch DB host, 2 replicas
+  # Keycloak workload: public auth hostname + tailnet admin hostname, Neon DB host
   - path: keycloak/statefulset.yaml
+  # HA PDB: keep 2 of 3 pods available during voluntary disruptions
+  - path: keycloak/pdb.yaml
   # ExternalSecret remoteRef keys -> mzla/tb-prod/*
   - target:
       group: external-secrets.io
