@@ -1,0 +1,54 @@
+# Public internet-facing NLB for the tb-dev Customer Auth Keycloak (auth host) -- Mode A.
+#
+# STAGED-UNREFERENCED: this manifest is intentionally NOT listed in
+# overlays/tb-dev/kustomization.yaml. tb-dev keycloak stays tailnet-only today
+# (reached via keycloak/tailscale-ingress.yaml) so the working dev login flow and
+# its OIDC client registration are not disrupted. Wire this into the dev
+# kustomization (and flip KC_HOSTNAME to https://auth.tb-dev.thunderbird.dev) only
+# as a deliberate, coordinated step.
+#
+# TLS TERMINATION: the NLB terminates TLS using the *.tb-dev.thunderbird.dev
+# wildcard ACM cert (ssl-cert = REPLACE_TBDEV_WILDCARD_ACM_ARN), listening
+# on :443 and forwarding plaintext to the keycloak pods on :8080. Keycloak runs
+# with KC_PROXY_HEADERS=xforwarded so it trusts the X-Forwarded-* headers the NLB
+# injects and builds correct https://auth.tb-dev.thunderbird.dev URLs.
+#
+# DNS: same-account external-dns (AWS provider, IRSA) publishes
+# auth.tb-dev.thunderbird.dev -> NLB into the delegated tb-dev.thunderbird.dev
+# sub-zone.
+#
+# target-type ip routes directly to pod IPs (VPC CNI); avoids the extra node hop.
+# backend-protocol tcp: the NLB does TLS->TCP, Keycloak speaks plaintext HTTP on
+# the backend (KC_HTTP_ENABLED=true).
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-customer-public
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/component: public-lb
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # TLS terminates at the NLB with this ACM cert on the :443 listener.
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: REPLACE_TBDEV_WILDCARD_ACM_ARN
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    # NLB does TLS->plaintext; backend speaks plain TCP/HTTP to Keycloak :8080.
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "9000"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /health/ready
+    external-dns.alpha.kubernetes.io/hostname: auth.tb-dev.thunderbird.dev
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: keycloak-customer
+  ports:
+    # Public 443 (NLB TLS listener) -> pod http :8080.
+    - name: https
+      port: 443
+      targetPort: http
+      protocol: TCP
