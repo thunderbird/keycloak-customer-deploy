@@ -31,7 +31,8 @@ spec:
             requests:
               cpu: 500m
           env:
-            # Public auth host, served by the internet-facing NLB (TLS at the NLB).
+            # Public auth host, served by the internet-facing ALB Ingress; TLS terminates
+            # at the ALB via the LB-controller-managed ACM cert.
             - name: KC_HOSTNAME
               value: https://auth.tb-prod.thunderbird.dev
             # Admin console/REST host -> tailnet Ingress (tailscale-admin-ingress.yaml).
