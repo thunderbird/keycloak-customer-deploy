@@ -37,9 +37,10 @@ spec:
           # harmless -- stage renders the identical `&amp;` and logs in fine. The
           # earlier theme-?no_esc initContainer was therefore removed.)
           #
-          # Durable fix: make entry-keycloak.sh honor KC_PROXY_HEADERS (default
-          # `forwarded`) so this command override can be dropped once the image
-          # ships -- tracked in thunderbird/thunderbird-accounts#1037.
+          # TEMPORARY interim override. The durable resolution is the
+          # auth.tb.pro cutover ingress/LB design -- front Keycloak with an LB so
+          # it sees HTTPS directly (TLS passthrough / HTTPS backend), making the
+          # proxy-headers mode moot. Tracked with the cutover: platform-infrastructure#142.
           command:
             - /bin/bash
             - -c
