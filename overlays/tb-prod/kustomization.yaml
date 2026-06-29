@@ -16,7 +16,9 @@ namespace: keycloak-customer
 
 resources:
   - ../../bases
-  - keycloak/tailscale-ingress.yaml
+  # tailnet LOGIN ingress dropped: KC_HOSTNAME is now the public NLB host
+  # (auth.tb-prod.thunderbird.dev) with KC_HOSTNAME_STRICT=true, so the old
+  # keycloak-customer-tb-prod tailnet host can't serve login. Admin stays tailnet:
   - keycloak/tailscale-admin-ingress.yaml
   - keycloak/loadbalancer-service.yaml
   - keycloak/securitygrouppolicy.yaml

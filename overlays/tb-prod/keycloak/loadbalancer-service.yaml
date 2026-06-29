@@ -29,6 +29,12 @@ metadata:
     app.kubernetes.io/component: public-lb
   annotations:
     argocd.argoproj.io/sync-wave: "10"
+    # PREREQUISITE (cutover, #142): under strict pod-SG mode the keycloak pod SG
+    # replaces the node SG, so the NLB (target-type ip) can only reach the pods if
+    # that pod SG allows ingress on 8080 (data) and 9000 (NLB health check) from the
+    # tb-prod VPC CIDR / NLB subnets. Manually-assigned pod SGs are NOT managed by the
+    # LB controller -- add those ingress rules in the mzla-tb-prod Pulumi before targets
+    # go live, or registration stays Unhealthy. Mirrors the accounts pod-SG 5555 fix.
     service.beta.kubernetes.io/aws-load-balancer-type: external
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
