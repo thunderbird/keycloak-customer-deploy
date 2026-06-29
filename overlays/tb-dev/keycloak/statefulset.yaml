@@ -39,7 +39,7 @@ spec:
           #
           # Durable fix: make entry-keycloak.sh honor KC_PROXY_HEADERS (default
           # `forwarded`) so this command override can be dropped once the image
-          # ships -- thunderbird-accounts change.
+          # ships -- tracked in thunderbird/thunderbird-accounts#1037.
           command:
             - /bin/bash
             - -c
