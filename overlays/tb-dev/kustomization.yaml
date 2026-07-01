@@ -6,6 +6,11 @@ namespace: keycloak-customer
 
 resources:
   - ../../bases
+  # Public internet-facing ALB Ingress for the auth host (auth.tb-dev.thunderbird.dev),
+  # thunderbird.dev TEST domain; admin (/admin, /realms/master) denied 403 at the edge.
+  - keycloak/public-ingress.yaml
+  # Tailnet Ingress: now the ADMIN path (KC_HOSTNAME_ADMIN points here); still serves
+  # the whole service over the tailnet for admin/ops.
   - keycloak/tailscale-ingress.yaml
   - keycloak/securitygrouppolicy.yaml
 
