@@ -59,7 +59,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /health/ready
     # Fixed-response 403 reused by the admin deny rules below (admin is tailnet-only).
     alb.ingress.kubernetes.io/actions.deny-admin: >-
-      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden: admin is available over the tailnet only."}}
+      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden: admin is available on the internal network only."}}
     # external-dns (#625) publishes this A/ALIAS record into tb-dev.thunderbird.dev.
     external-dns.alpha.kubernetes.io/hostname: auth.tb-dev.thunderbird.dev
 spec:
