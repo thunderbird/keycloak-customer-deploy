@@ -1,0 +1,96 @@
+# Public, internet-facing ALB Ingress for the tb-dev Customer Auth Keycloak (auth host).
+#
+# tb-dev goes public on the thunderbird.dev TEST domain for test users (auth host
+# auth.tb-dev.thunderbird.dev); the real-domain / prod cutover stays gated (#142).
+#
+# The AWS Load Balancer Controller (chart v3.4.x, SA aws-lb-controller in kube-system)
+# provisions an internet-facing ALB with an HTTPS:443 listener and, via its
+# EnableCertificateManagement feature, auto-creates + DNS-validates an ACM certificate
+# for the Ingress host -- writing the validation record into the delegated
+# tb-dev.thunderbird.dev Route53 sub-zone (ACK-managed HostedZone) and waiting for ISSUED
+# before attaching it. NO cert ARN is hardcoded here (annotating certificate-arn would
+# take precedence and disable the managed cert). The feature gate and the matching IAM
+# (ACM + Route53 ChangeResourceRecordSets on the sub-zone) live on the LB controller in
+# platform-infrastructure (#613/#625/#627).
+#
+# TLS terminates at the ALB; the ALB forwards plaintext HTTP to the keycloak-customer
+# ClusterIP service :80 -> pod :8080. Keycloak runs with --proxy-headers xforwarded
+# (dev statefulset command override), so it trusts the ALB's X-Forwarded-* headers and
+# emits correct https://auth.tb-dev.thunderbird.dev URLs. KC_HOSTNAME_STRICT=true (base).
+#
+# ADMIN STAYS TAILNET-ONLY. KC_HOSTNAME_ADMIN points admin URLs at the tailnet Ingress
+# (keycloak/tailscale-ingress.yaml -> keycloak-customer-tb-dev.tail2726a2.ts.net), but
+# hostname-admin only changes generated URLs -- it does NOT gate endpoints by Host. So
+# the admin console (/admin) and admin REST (/admin/realms/*) plus the master realm
+# (/realms/master) are DENIED with an ALB fixed-response 403 at this public edge (rules
+# below, ordered before the catch-all). The accounts back-channel reaches
+# /admin/realms/tbpro over the in-cluster Service, which never traverses this ALB, so the
+# deny does not affect it. Customer flows (/realms/tbpro/*, the account console) stay public.
+#
+# DNS: AWS external-dns (#625) publishes auth.tb-dev.thunderbird.dev -> the ALB from the
+# external-dns.alpha.kubernetes.io/hostname annotation, into the sub-zone.
+#
+# target-type ip routes directly to pod IPs (VPC CNI). PREREQUISITE: under strict pod-SG
+# mode the keycloak pod SG replaces the node SG, so the ALB can only reach the pods with
+# ingress on 8080 (data) + 9000 (health) from the VPC -- added in the mzla-tb-dev Pulumi
+# (platform-infrastructure#636).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-customer-public
+  namespace: keycloak-customer
+  labels:
+    app.kubernetes.io/name: keycloak-customer
+    app.kubernetes.io/component: public-lb
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # EnableCertificateManagement: the controller creates + DNS-validates the ACM cert
+    # for the Ingress host(s) and attaches it to the HTTPS listener. Do NOT add
+    # certificate-arn (it would take precedence and disable the managed cert).
+    alb.ingress.kubernetes.io/create-acm-cert: "true"
+    # ALB does TLS->plaintext; backend speaks HTTP to the keycloak service.
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    # Health check on the Keycloak management port (9000): /health/ready.
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: "9000"
+    alb.ingress.kubernetes.io/healthcheck-path: /health/ready
+    # Fixed-response 403 reused by the admin deny rules below (admin is tailnet-only).
+    alb.ingress.kubernetes.io/actions.deny-admin: >-
+      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden: admin is available over the tailnet only."}}
+    # external-dns (#625) publishes this A/ALIAS record into tb-dev.thunderbird.dev.
+    external-dns.alpha.kubernetes.io/hostname: auth.tb-dev.thunderbird.dev
+spec:
+  ingressClassName: alb
+  rules:
+    - host: auth.tb-dev.thunderbird.dev
+      http:
+        paths:
+          # Admin deny rules FIRST so they win over the catch-all forward below.
+          # /admin covers the admin console and the /admin/realms/* admin REST API.
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: deny-admin
+                port:
+                  name: use-annotation
+          # /realms/master is the admin (master) realm -- never public.
+          - path: /realms/master
+            pathType: Prefix
+            backend:
+              service:
+                name: deny-admin
+                port:
+                  name: use-annotation
+          # Catch-all: forward customer auth traffic to the keycloak-customer Service
+          # (ClusterIP :80 -> pod http :8080).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-customer
+                port:
+                  number: 80

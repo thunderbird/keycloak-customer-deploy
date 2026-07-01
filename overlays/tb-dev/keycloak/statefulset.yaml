@@ -1,5 +1,8 @@
 # tb-dev patch:
-# - tailnet hostname (dev is tailnet-only; reached via the Tailscale Ingress)
+# - PUBLIC auth hostname (auth.tb-dev.thunderbird.dev, served by the internet-facing
+#   ALB Ingress keycloak/public-ingress.yaml on the thunderbird.dev TEST domain);
+#   KC_HOSTNAME_ADMIN keeps the admin console/REST URLs on the tailnet Ingress. Admin
+#   is denied at the public ALB edge (403) -- see keycloak/public-ingress.yaml.
 # - 2 replicas, 500m cpu request so both pods fit the 2-node general pool
 # - DB repointed from the throwaway dev RDS to the Neon branch "mzla-tb-dev"
 #   (copy-on-write clone of stage tbpro). DIRECT endpoint (not -pooler) so
@@ -55,7 +58,12 @@ spec:
             requests:
               cpu: 500m
           env:
+            # PUBLIC auth host, served by the internet-facing ALB Ingress.
             - name: KC_HOSTNAME
+              value: https://auth.tb-dev.thunderbird.dev
+            # Admin console/REST URLs -> tailnet Ingress (keycloak/tailscale-ingress.yaml).
+            # URL generation only; the public ALB edge 403 is the actual admin gate.
+            - name: KC_HOSTNAME_ADMIN
               value: https://keycloak-customer-tb-dev.tail2726a2.ts.net
             - name: KC_DB_URL_HOST
               valueFrom: null

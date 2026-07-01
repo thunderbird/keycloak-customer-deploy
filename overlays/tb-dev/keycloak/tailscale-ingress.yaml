@@ -1,6 +1,8 @@
-# Tailnet-only Ingress for the tb-dev Customer Auth Keycloak. The whole service
-# (auth + admin) is private to the tailnet for dev validation (#141) - no public
-# Cloudflare tunnel yet, so the admin console is never publicly exposed.
+# Tailnet Ingress for the tb-dev Customer Auth Keycloak. Now that the customer auth
+# host is public (keycloak/public-ingress.yaml -> auth.tb-dev.thunderbird.dev), this
+# tailnet host is the ADMIN path: KC_HOSTNAME_ADMIN points admin console/REST URLs here,
+# and the public ALB denies /admin + /realms/master (403), so admin is never publicly
+# exposed. It still serves the whole service over the tailnet for admin/ops.
 #
 # Deliberately absent annotations:
 #   - tailscale.com/funnel: would expose the service publicly.
