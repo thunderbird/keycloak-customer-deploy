@@ -13,7 +13,7 @@ resources:
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
-  digest: sha256:f1f41f5769ec6a2d5cc8e79f4f0974a0eba5cc31a929c963a95b7644e6631087
+  digest: sha256:e565855b48833d75057198475556b2ca0a58d372e3e82627fea1d38ee005dce7
 patches:
 # Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
 - path: keycloak/statefulset.yaml
