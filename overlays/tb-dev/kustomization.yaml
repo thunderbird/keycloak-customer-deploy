@@ -1,49 +1,44 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 namespace: keycloak-customer
-
 resources:
-  - ../../bases
-  # Public internet-facing ALB Ingress for the auth host (auth.tb-dev.thunderbird.dev),
-  # thunderbird.dev TEST domain; admin (/admin, /realms/master) denied 403 at the edge.
-  - keycloak/public-ingress.yaml
-  # Tailnet Ingress: now the ADMIN path (KC_HOSTNAME_ADMIN points here); still serves
-  # the whole service over the tailnet for admin/ops.
-  - keycloak/tailscale-ingress.yaml
-  - keycloak/securitygrouppolicy.yaml
-
+- ../../bases
+# Public internet-facing ALB Ingress for the auth host (auth.tb-dev.thunderbird.dev),
+# thunderbird.dev TEST domain; admin (/admin, /realms/master) denied 403 at the edge.
+- keycloak/public-ingress.yaml
+# Tailnet Ingress: now the ADMIN path (KC_HOSTNAME_ADMIN points here); still serves
+# the whole service over the tailnet for admin/ops.
+- keycloak/tailscale-ingress.yaml
+- keycloak/securitygrouppolicy.yaml
 images:
-  - name: REPLACE_MZLA_ECR/keycloak-customer
-    newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
-    newTag: keycloak-e7ef91efd43f7619e7fc522fb64737b56efb9ffc
-
+- name: REPLACE_MZLA_ECR/keycloak-customer
+  newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer
+  digest: sha256:f1f41f5769ec6a2d5cc8e79f4f0974a0eba5cc31a929c963a95b7644e6631087
 patches:
-  # Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
-  - path: keycloak/statefulset.yaml
-  # ExternalSecret remoteRef keys -> mzla/tb-dev/*
-  - target:
-      group: external-secrets.io
-      version: v1
-      kind: ExternalSecret
-      name: keycloak-customer-db
-    patch: |-
-      - op: replace
-        path: /spec/data/0/remoteRef/key
-        value: mzla/tb-dev/keycloak-customer-db
-      - op: replace
-        path: /spec/data/1/remoteRef/key
-        value: mzla/tb-dev/keycloak-customer-db
-  - target:
-      group: external-secrets.io
-      version: v1
-      kind: ExternalSecret
-      name: keycloak-customer-admin
-    patch: |-
-      - op: replace
-        path: /spec/data/0/remoteRef/key
-        value: mzla/tb-dev/keycloak-customer-admin
-      - op: replace
-        path: /spec/data/1/remoteRef/key
-        value: mzla/tb-dev/keycloak-customer-admin
+# Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
+- path: keycloak/statefulset.yaml
+# ExternalSecret remoteRef keys -> mzla/tb-dev/*
+- target:
+    group: external-secrets.io
+    version: v1
+    kind: ExternalSecret
+    name: keycloak-customer-db
+  patch: |-
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mzla/tb-dev/keycloak-customer-db
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mzla/tb-dev/keycloak-customer-db
+- target:
+    group: external-secrets.io
+    version: v1
+    kind: ExternalSecret
+    name: keycloak-customer-admin
+  patch: |-
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mzla/tb-dev/keycloak-customer-admin
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mzla/tb-dev/keycloak-customer-admin
