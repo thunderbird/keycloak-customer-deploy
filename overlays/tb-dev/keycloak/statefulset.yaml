@@ -102,6 +102,12 @@ spec:
             - name: realm-config-scripts
               mountPath: /scripts-extra
               readOnly: true
+            # Override the image's baked MFA reconcile with the retry-wrapped copy
+            # (subPath so /scripts/entry.sh and the rest of /scripts are preserved).
+            - name: realm-config-scripts
+              mountPath: /scripts/apply-mfa-config.sh
+              subPath: apply-mfa-config.sh
+              readOnly: true
       volumes:
         - name: realm-config
           configMap:
