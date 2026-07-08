@@ -52,6 +52,11 @@ spec:
               KC_PID=$!
               trap 'kill -TERM "$KC_PID" 2>/dev/null' TERM INT
               /bin/bash /scripts/apply-mfa-config.sh &
+              # Codified tbpro thunderbird-accounts client config (ConfigMap-mounted,
+              # not image-baked): reconciles redirect URIs / web origins / app URLs /
+              # is_services_admin mapper on every start so a Neon branch reset no longer
+              # needs a manual kcadm re-add. Fail-soft, same tb-accounts-admin auth.
+              /bin/bash /scripts-extra/apply-client-config.sh &
               wait "$KC_PID"
           args: []
           resources:
@@ -73,3 +78,30 @@ spec:
               value: "5432"
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
+            # keycloak-config-cli auth (client_credentials as the master-realm
+            # tb-accounts-admin SA). Un-skips the image's apply-mfa-config.sh AND
+            # drives apply-client-config.sh. Secret is the cloned stage value, so it
+            # keeps matching after a Neon branch reset.
+            - name: KEYCLOAK_ADMIN_CLIENT_ID
+              value: tb-accounts-admin
+            - name: KEYCLOAK_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin-client
+                  key: client-secret
+          volumeMounts:
+            # config-cli import file + apply script, delivered via ConfigMap
+            # (configMapGenerator in the overlay kustomization).
+            - name: realm-config
+              mountPath: /config
+              readOnly: true
+            - name: realm-config-scripts
+              mountPath: /scripts-extra
+              readOnly: true
+      volumes:
+        - name: realm-config
+          configMap:
+            name: keycloak-realm-config
+        - name: realm-config-scripts
+          configMap:
+            name: keycloak-realm-config-scripts
