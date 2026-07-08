@@ -51,12 +51,16 @@ spec:
               /opt/keycloak/bin/kc.sh start --http-enabled=true --proxy-headers xforwarded &
               KC_PID=$!
               trap 'kill -TERM "$KC_PID" 2>/dev/null' TERM INT
-              /bin/bash /scripts/apply-mfa-config.sh &
-              # Codified tbpro thunderbird-accounts client config (ConfigMap-mounted,
-              # not image-baked): reconciles redirect URIs / web origins / app URLs /
-              # is_services_admin mapper on every start so a Neon branch reset no longer
-              # needs a manual kcadm re-add. Fail-soft, same tb-accounts-admin auth.
-              /bin/bash /scripts-extra/apply-client-config.sh &
+              # Both config-cli reconciles issue PUT /realms/tbpro, so run them
+              # SEQUENTIALLY (one background subshell) -- launching both with `&`
+              # races on the realm update (HTTP 409 "Realm with same name exists" +
+              # duplicate-key on REALM_ATTRIBUTE). apply-mfa-config.sh is the image's
+              # baked MFA step-up reconcile; apply-client-config.sh (ConfigMap-mounted,
+              # not image-baked) reconciles the tbpro thunderbird-accounts client
+              # (redirect URIs / web origins / app URLs / is_services_admin mapper) so
+              # a Neon branch reset no longer needs a manual kcadm re-add. Both
+              # fail-soft, same tb-accounts-admin auth.
+              { /bin/bash /scripts/apply-mfa-config.sh; /bin/bash /scripts-extra/apply-client-config.sh; } &
               wait "$KC_PID"
           args: []
           resources:
