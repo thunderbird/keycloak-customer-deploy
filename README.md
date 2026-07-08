@@ -74,3 +74,7 @@ ExternalSecrets: `mzla/<env>/keycloak-customer-db` and
 - Public Cloudflare tunnel (`auth.tb.pro`) + tailnet admin ingress + 3 replicas (files present, unreferenced).
 - Public `/admin` deny for tb-prod (Cloudflare Access).
 - Repoint `KC_DB_URL_HOST` from the validation branch to the live shared Neon endpoint.
+
+## Runbooks
+
+- [dev-realm redirect URIs](docs/dev-realm-redirect-uris.md) -- re-adding the tb-dev accounts OIDC redirect URIs + app URLs after a Neon branch reset (which reverts them to stage).
