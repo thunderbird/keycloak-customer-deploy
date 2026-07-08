@@ -17,11 +17,16 @@ the dev redirect URIs below.
 
 ## The dev-only values (client `thunderbird-accounts`, realm `tbpro`)
 
-The reset reverts the whole client to its stage config, so ALL of these need re-applying:
+The reset reverts the whole client to its stage config, so ALL of these need re-applying.
+tb-dev accounts is reachable via **two** hosts — the public ALB (`accounts.tb-dev.thunderbird.dev`)
+AND the tailnet (`accounts-tb-dev.tail2726a2.ts.net`, used to reach `/admin`) — so **both** need
+login + logout callbacks, or you get `invalid_redirect_uri` ("We are sorry").
 
-- redirect URIs: `https://accounts.tb-dev.thunderbird.dev/oidc/callback/*` and
-  `https://accounts.tb-dev.thunderbird.dev/login/`
-- web origin: `https://accounts.tb-dev.thunderbird.dev`
+- redirect URIs (per host: `/oidc/callback/*`, `/login/`, `/logout/callback`):
+  - `https://accounts.tb-dev.thunderbird.dev/{oidc/callback/*, login/, logout/callback}`
+  - `https://accounts-tb-dev.tail2726a2.ts.net/{oidc/callback/*, login/, logout/callback}`
+- web origins: `https://accounts.tb-dev.thunderbird.dev` and `https://accounts-tb-dev.tail2726a2.ts.net`
+- post-logout policy: attribute `post.logout.redirect.uris = +` (validate logout against the redirect URIs)
 - **`rootUrl` / `baseUrl` / `adminUrl`** — these back the Keycloak **"Back to Application"** link;
   if left at the stage value the button sends users to `accounts-stage.tb.pro`. Set
   `rootUrl=https://accounts.tb-dev.thunderbird.dev`, `baseUrl=/`, `adminUrl=https://accounts.tb-dev.thunderbird.dev`.
@@ -62,10 +67,12 @@ kubectl --context tb-dev exec -n keycloak-customer keycloak-customer-0 -c keyclo
         --fields id --format csv --noquotes)
 
   /opt/keycloak/bin/kcadm.sh update clients/$CID -r tbpro \
-    -s '"'"'redirectUris=["https://accounts-stage.tb.pro/login/","https://accounts-stage.tb.pro/oidc/callback/*","https://accounts.tb-dev.thunderbird.dev/oidc/callback/*","https://accounts.tb-dev.thunderbird.dev/login/"]'"'"' \
-    -s '"'"'webOrigins=["accounts-stage.tb.pro","https://accounts.tb-dev.thunderbird.dev"]'"'"'
+    -s '"'"'redirectUris=["https://accounts-stage.tb.pro/login/","https://accounts-stage.tb.pro/oidc/callback/*","https://accounts.tb-dev.thunderbird.dev/oidc/callback/*","https://accounts.tb-dev.thunderbird.dev/login/","https://accounts.tb-dev.thunderbird.dev/logout/callback","https://accounts-tb-dev.tail2726a2.ts.net/oidc/callback/*","https://accounts-tb-dev.tail2726a2.ts.net/login/","https://accounts-tb-dev.tail2726a2.ts.net/logout/callback"]'"'"' \
+    -s '"'"'webOrigins=["accounts-stage.tb.pro","https://accounts.tb-dev.thunderbird.dev","https://accounts-tb-dev.tail2726a2.ts.net"]'"'"' \
+    -s '"'"'attributes."post.logout.redirect.uris"=+'"'"' \
+    -s "rootUrl=https://accounts.tb-dev.thunderbird.dev" -s "baseUrl=/" -s "adminUrl=https://accounts.tb-dev.thunderbird.dev"
 
-  /opt/keycloak/bin/kcadm.sh get clients/$CID -r tbpro --fields redirectUris,webOrigins   # verify
+  /opt/keycloak/bin/kcadm.sh get clients/$CID -r tbpro --fields redirectUris,webOrigins,rootUrl,baseUrl,adminUrl   # verify
 
   AID=$(/opt/keycloak/bin/kcadm.sh get users -r master -q username=tmp-admin --fields id --format csv --noquotes)
   /opt/keycloak/bin/kcadm.sh delete users/$AID -r master     # remove the throwaway admin
