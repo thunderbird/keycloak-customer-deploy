@@ -1,6 +1,6 @@
 # Tailnet-only Ingress for the Customer Auth Keycloak admin console/REST, mirroring
-# the Staff SSO admin model. KC_HOSTNAME_ADMIN points admin URLs here. Public
-# /admin on auth.tb.pro is denied at the edge (Cloudflare Access, Part D2).
+# the Staff SSO admin model. KC_HOSTNAME_ADMIN points admin URLs here, and
+# KC_HOSTNAME_STRICT keeps the admin console/REST off the public ALB host.
 #
 # Deliberately absent annotations:
 #   - tailscale.com/funnel: would expose the admin UI publicly. Never on admin.
