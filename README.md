@@ -67,6 +67,10 @@ the dedicated pod SG via `keycloak/securitygrouppolicy.yaml`.
 Secrets (AWS Secrets Manager, per account, eu-central-1) referenced by the
 ExternalSecrets: `mzla/<env>/keycloak-customer-db` and
 `mzla/<env>/keycloak-customer-admin` (`{username, password}`).
+tb-dev also uses `mzla/tb-dev/keycloak-customer-admin-client` (`{client-secret}`) for
+keycloak-config-cli auth (the `tb-accounts-admin` service account) — see
+[docs/dev-realm-redirect-uris.md](docs/dev-realm-redirect-uris.md) for the codified
+`thunderbird-accounts` client reconcile that keeps tb-dev config across Neon resets.
 `mzla/shared-services/cloudflare-operator` already exists (read cross-account; used by the cutover Cloudflare resources).
 
 ## Not yet included (cutover follow-ups, #142)

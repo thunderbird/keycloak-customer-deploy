@@ -10,6 +10,18 @@ resources:
 # the whole service over the tailnet for admin/ops.
 - keycloak/tailscale-ingress.yaml
 - keycloak/securitygrouppolicy.yaml
+# tb-accounts-admin service-account client secret (keycloak-config-cli auth)
+- keycloak/admin-client-externalsecret.yaml
+# Codified tbpro thunderbird-accounts client config, mounted into the keycloak pod
+# (see keycloak/statefulset.yaml volumes) and reconciled at startup by
+# apply-client-config.sh. Hash-suffixed so an edit rolls the pods.
+configMapGenerator:
+- name: keycloak-realm-config
+  files:
+  - keycloak/realm-config/tbpro-accounts-client.yaml
+- name: keycloak-realm-config-scripts
+  files:
+  - keycloak/realm-config/apply-client-config.sh
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: 718959508124.dkr.ecr.eu-central-1.amazonaws.com/keycloak-customer

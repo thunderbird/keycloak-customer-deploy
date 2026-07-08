@@ -1,0 +1,53 @@
+# keycloak-config-cli import: tb-dev env-specific config for the tbpro
+# `thunderbird-accounts` OIDC client. Delivered as a ConfigMap and reconciled by
+# apply-client-config.sh on every Keycloak start (see the overlay statefulset
+# `command:`), so a Neon branch reset -- which reverts the realm to the stage
+# clone and wipes these -- no longer needs a manual kcadm re-add.
+#
+# Managed modes are no-delete (see apply-client-config.sh): config-cli only
+# ADDS/UPDATES this one client; it never deletes other tbpro clients/users/flows.
+#
+# Hostnames are the only env-specific values. A domain change (e.g. the prod
+# cutover, platform-infrastructure#142) reuses this mechanism: the prod overlay
+# ships its own copy of this file with the real-domain URLs (and drops the
+# accounts-stage.tb.pro entries, which exist here only because the tb-dev branch
+# is a copy-on-write clone of stage).
+realm: tbpro
+clients:
+  - clientId: thunderbird-accounts
+    rootUrl: "https://accounts.tb-dev.thunderbird.dev"
+    baseUrl: "/"
+    adminUrl: "https://accounts.tb-dev.thunderbird.dev"
+    redirectUris:
+      # public ALB host
+      - "https://accounts.tb-dev.thunderbird.dev/oidc/callback/*"
+      - "https://accounts.tb-dev.thunderbird.dev/login/"
+      - "https://accounts.tb-dev.thunderbird.dev/logout/callback"
+      # tailnet host (used to reach /admin)
+      - "https://accounts-tb-dev.tail2726a2.ts.net/oidc/callback/*"
+      - "https://accounts-tb-dev.tail2726a2.ts.net/login/"
+      - "https://accounts-tb-dev.tail2726a2.ts.net/logout/callback"
+      # stage entries restored by the clone; harmless on tb-dev, kept so the list
+      # is authoritative and stable across reconciles
+      - "https://accounts-stage.tb.pro/oidc/callback/*"
+      - "https://accounts-stage.tb.pro/login/"
+    webOrigins:
+      - "https://accounts.tb-dev.thunderbird.dev"
+      - "https://accounts-tb-dev.tail2726a2.ts.net"
+      - "accounts-stage.tb.pro"
+    attributes:
+      # validate post-logout redirects against the registered redirect URIs
+      "post.logout.redirect.uris": "+"
+    protocolMappers:
+      # maps the Keycloak user attribute is_services_admin -> the is_services_admin
+      # token claim; the accounts OIDC middleware sets is_staff/is_superuser from it.
+      - name: is_services_admin
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        config:
+          "user.attribute": "is_services_admin"
+          "claim.name": "is_services_admin"
+          "jsonType.label": "String"
+          "id.token.claim": "true"
+          "access.token.claim": "true"
+          "userinfo.token.claim": "true"
