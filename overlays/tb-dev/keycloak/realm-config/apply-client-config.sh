@@ -63,4 +63,18 @@ export IMPORT_CACHE_ENABLED=false
 # Only ever add/update the listed client; NEVER delete other (real) tbpro clients.
 export IMPORT_MANAGED_CLIENT=no-delete
 
-java -jar "${CONFIG_CLI_JAR}" || echo 'apply-client-config: keycloak-config-cli failed (non-fatal).'
+# Retry on non-zero exit: a config-cli realm update can transiently time out on
+# Infinispan cluster replication during a rolling restart (ISPN000476, HTTP 500)
+# while the peer pod is still rejoining. A short backoff lets the cluster settle.
+ATTEMPTS="${RECONCILE_ATTEMPTS:-3}"
+BACKOFF="${RECONCILE_BACKOFF:-25}"
+n=1
+until java -jar "${CONFIG_CLI_JAR}"; do
+    if [ "$n" -ge "$ATTEMPTS" ]; then
+        echo "apply-client-config: keycloak-config-cli failed after ${n} attempts (non-fatal)."
+        break
+    fi
+    echo "apply-client-config: keycloak-config-cli attempt ${n} failed (likely transient cluster timeout during rolling restart); retrying in ${BACKOFF}s."
+    n=$((n + 1))
+    sleep "$BACKOFF"
+done
