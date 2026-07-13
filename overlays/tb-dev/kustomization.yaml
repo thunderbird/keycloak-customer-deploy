@@ -27,13 +27,10 @@ configMapGenerator:
   # Infinispan cluster timeouts. Copy of the baked script + retry only.
   - keycloak/realm-config/apply-mfa-config.sh
 images:
-# Multi-arch (amd64 + arm64) Customer Auth Keycloak image, published to GHCR by
-# thunderbird-accounts (publish-images.yml), replacing the retired ECR-mirror
-# path. Bootstrap digest pin; ArgoCD Image Updater (repointed to the GHCR
-# :latest tag) maintains this digest going forward.
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
-  digest: sha256:49fa25b9964c759a7b3b32b3b57f92297a423675c6fd3f60ee7160d787994ab5
+  digest: sha256:a5c4a151ec21315c75456b652da8798c24aef712f931fa125b37441756625df3
+  newTag: latest
 patches:
 # Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
 - path: keycloak/statefulset.yaml
