@@ -60,7 +60,12 @@ spec:
               # (redirect URIs / web origins / app URLs / is_services_admin mapper) so
               # a Neon branch reset no longer needs a manual kcadm re-add. Both
               # fail-soft, same tb-accounts-admin auth.
-              { /bin/bash /scripts/apply-mfa-config.sh; /bin/bash /scripts-extra/apply-client-config.sh; } &
+              # apply-master-frontendurl.sh (kcadm) runs LAST in the same sequential
+              # subshell: it updates the master realm (not tbpro), so it won't race the
+              # two tbpro PUTs above, and it rebinds master's front-channel to the
+              # tailnet admin host so the admin console login/session iframe stops
+              # hitting the public /realms/master 403.
+              { /bin/bash /scripts/apply-mfa-config.sh; /bin/bash /scripts-extra/apply-client-config.sh; /bin/bash /scripts-extra/apply-master-frontendurl.sh; } &
               wait "$KC_PID"
           args: []
           resources:

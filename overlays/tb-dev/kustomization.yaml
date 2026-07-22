@@ -26,6 +26,10 @@ configMapGenerator:
   # statefulset) to add a retry loop around config-cli for transient rolling-restart
   # Infinispan cluster timeouts. Copy of the baked script + retry only.
   - keycloak/realm-config/apply-mfa-config.sh
+  # Rebinds the master realm's front-channel (issuer + admin-console login + session
+  # iframe) to the private tailnet admin host (KC_HOSTNAME_ADMIN) so the admin console
+  # authenticates same-origin and never hits the public /realms/master 403 deny.
+  - keycloak/realm-config/apply-master-frontendurl.sh
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
