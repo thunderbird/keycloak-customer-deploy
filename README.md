@@ -47,6 +47,25 @@ kustomize build overlays/tb-dev        # or a single overlay
   denied at the edge (Cloudflare Access).
 - **Realm `tbpro` lives in the shared Neon DB** (validated via isolated Neon
   branches) — there is no `--import-realm` and no data migration.
+- **Admin front-channel host.** The `master` realm's front-channel (issuer + admin-console
+  login + session iframe) is pinned to `KC_HOSTNAME_ADMIN` via a per-realm `frontendUrl`
+  reconciled at startup (`realm-config/apply-master-frontendurl.sh`); without it the
+  console's master login/iframe requests hit the public host and the `/realms/master`
+  edge deny (KC 26 hostname v2, KC #32458).
+- **Break-glass (admin unreachable).** If Tailscale is down, or `master`'s `frontendUrl`
+  is set wrong (points at an unreachable/incorrect host), the admin console has no public
+  path in. Reach it directly and, if needed, repair the attribute over a port-forward:
+  ```bash
+  kubectl -n keycloak-customer port-forward sts/keycloak-customer 8080:8080
+  # then, in the pod (secret via env, never argv):
+  kubectl -n keycloak-customer exec keycloak-customer-0 -- sh -c '
+    KC_CLI_CLIENT_SECRET="$KEYCLOAK_ADMIN_CLIENT_SECRET" /opt/keycloak/bin/kcadm.sh \
+      config credentials --server http://localhost:8080 --realm master \
+      --client "$KEYCLOAK_ADMIN_CLIENT_ID";
+    /opt/keycloak/bin/kcadm.sh update realms/master -s "attributes.frontendUrl=$KC_HOSTNAME_ADMIN"'
+  ```
+  The reconcile is idempotent and re-runs on the next pod start, so a manual fix is only
+  a bridge until the config/branch is corrected.
 
 ## DB connectivity (Neon over PrivateLink)
 
