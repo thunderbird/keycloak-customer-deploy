@@ -47,25 +47,25 @@ kustomize build overlays/tb-dev        # or a single overlay
   denied at the edge (Cloudflare Access).
 - **Realm `tbpro` lives in the shared Neon DB** (validated via isolated Neon
   branches) — there is no `--import-realm` and no data migration.
-- **Admin front-channel host.** The `master` realm's front-channel (issuer + admin-console
-  login + session iframe) is pinned to `KC_HOSTNAME_ADMIN` via a per-realm `frontendUrl`
-  reconciled at startup (`realm-config/apply-master-frontendurl.sh`); without it the
-  console's master login/iframe requests hit the public host and the `/realms/master`
-  edge deny (KC 26 hostname v2, KC #32458).
-- **Break-glass (admin unreachable).** If Tailscale is down, or `master`'s `frontendUrl`
-  is set wrong (points at an unreachable/incorrect host), the admin console has no public
-  path in. Reach it directly and, if needed, repair the attribute over a port-forward:
+- **Admin front-channel host.** In KC 26.5 hostname v2 the `master` (admin) realm's
+  front-channel URLs (issuer + admin-console login + session iframe) are **already**
+  generated from `KC_HOSTNAME_ADMIN` — verified live: master's `.well-known` issuer is
+  the tailnet host regardless of the request Host. So the tailnet-served admin console
+  authenticates same-origin and never needs the public `/realms/master`, which the ALB
+  edge 403-denies. (No per-realm `frontendUrl` write is needed — and it isn't possible
+  anyway: the master `attributes` map is not writable via the Admin API in 26.5; the KC
+  #32458 workaround is a direct DB insert.) `realm-config/assert-master-frontend-host.sh`
+  is a fail-soft startup check that logs a WARNING if a future KC upgrade regresses this.
+- **Break-glass (admin unreachable).** If Tailscale is down, the tailnet admin console
+  has no public path in (by design). Reach it directly over a port-forward:
   ```bash
   kubectl -n keycloak-customer port-forward sts/keycloak-customer 8080:8080
-  # then, in the pod (secret via env, never argv):
-  kubectl -n keycloak-customer exec keycloak-customer-0 -- sh -c '
-    KC_CLI_CLIENT_SECRET="$KEYCLOAK_ADMIN_CLIENT_SECRET" /opt/keycloak/bin/kcadm.sh \
-      config credentials --server http://localhost:8080 --realm master \
-      --client "$KEYCLOAK_ADMIN_CLIENT_ID";
-    /opt/keycloak/bin/kcadm.sh update realms/master -s "attributes.frontendUrl=$KC_HOSTNAME_ADMIN"'
+  # browse http://localhost:8080/admin/  (or use kcadm against http://localhost:8080)
   ```
-  The reconcile is idempotent and re-runs on the next pod start, so a manual fix is only
-  a bridge until the config/branch is corrected.
+  If the front-channel assertion ever warns that master resolves to the public host
+  (a hostname-v2 regression), the fix is a DB-level `realm_attribute frontendUrl` on
+  master (KC #32458) or revisiting `KC_HOSTNAME_ADMIN` — not an Admin-API write, which
+  the master `attributes` map rejects.
 
 ## DB connectivity (Neon over PrivateLink)
 
