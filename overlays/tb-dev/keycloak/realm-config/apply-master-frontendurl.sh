@@ -65,12 +65,16 @@ fi
 # Authenticate as the master-realm tb-accounts-admin service account (client_credentials),
 # then merge the single attribute onto the master realm (kcadm GET-merges, preserving
 # other attributes). Both steps must succeed for the attempt to count as done.
+#
+# The client secret is passed via the KC_CLI_CLIENT_SECRET env var (which kcadm reads
+# when --secret is omitted), NOT as a --secret CLI arg, so it never lands in the process
+# arg list / `ps` output. stderr is left un-redirected so an auth failure (bad perms,
+# server error) surfaces in the pod log instead of being swallowed.
 do_apply() {
-    "${KCADM}" config credentials \
+    KC_CLI_CLIENT_SECRET="${KEYCLOAK_ADMIN_CLIENT_SECRET}" "${KCADM}" config credentials \
         --server "http://localhost:${HTTP_PORT}" \
         --realm master \
-        --client "${KEYCLOAK_ADMIN_CLIENT_ID:-tb-accounts-admin}" \
-        --secret "${KEYCLOAK_ADMIN_CLIENT_SECRET}" >/dev/null 2>&1 || return 1
+        --client "${KEYCLOAK_ADMIN_CLIENT_ID:-tb-accounts-admin}" >/dev/null || return 1
     "${KCADM}" update realms/master -s "attributes.frontendUrl=${FRONTEND_URL}" || return 1
 }
 
