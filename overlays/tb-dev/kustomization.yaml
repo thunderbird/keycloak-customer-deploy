@@ -33,7 +33,7 @@ configMapGenerator:
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
-  digest: sha256:b5e26170c032778bbc73f1d61561cb779c29887d498506663298f6b5e0cb71d0
+  digest: sha256:c79b8d965fa994cb014c8d8744c7f10e23d0924dc7cb4c792182c832a7685a22
 patches:
 # Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
 - path: keycloak/statefulset.yaml
