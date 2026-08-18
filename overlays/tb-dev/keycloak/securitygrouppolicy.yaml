@@ -2,9 +2,42 @@
 # reach Neon over the shared "stalwart-neondb-privatelink" endpoint (its SG only
 # admits allowlisted client SGs on 5432). Under POD_SECURITY_GROUP_ENFORCING_MODE=
 # strict, the listed SGs REPLACE the node SG, so both are required:
-#   - sg-07624df6ceb8865ec : EKS control-plane cluster SG (pod<->control-plane)
+#   - sg-08c51d43c4a250a81 : the EKS-MANAGED cluster SG
+#       (eks-cluster-sg-mzla-eks-tb-dev01-120464894)
 #   - sg-082f60c7858dfadb9 : mzla-tb-dev-keycloak-customer-pod (Neon client; from
 #       the mzla-tb-dev pulumi output keycloak_customer_pod_sg_id)
+#
+# USE THE EKS-MANAGED CLUSTER SG, NOT THE PULUMI ONE. This previously listed
+# sg-07624df6ceb8865ec (mzla-eks-tb-dev01-cluster-eksClusterSecurityGroup), the cluster's
+# `additional` SG created by pulumi-eks, which carries no
+# kubernetes.io/cluster/mzla-eks-tb-dev01 tag. Neither does the pod SG, so nothing on the
+# pod ENI was tagged and the AWS LOAD BALANCER CONTROLLER hot-looped while reconciling the
+# keycloak TargetGroupBinding: 2044 events observed in this namespace.
+#
+#   FailedNetworkReconcile: expected exactly one securityGroup tagged with
+#   kubernetes.io/cluster/mzla-eks-tb-dev01 for eni eni-..., got: []
+#
+# LBC needs exactly one tagged SG on the pod ENI to resolve the backend SG for an ALB
+# Ingress with target-type: ip. There is no cluster-tag requirement in the
+# SecurityGroupPolicy contract itself -- this is not the VPC Resource Controller.
+# sg-08c51d43c4a250a81 is the SG EKS creates and tags itself, which is what LBC looks for.
+# appointment-backend/appointment-frontend already pair it and emit ZERO such events.
+#
+# tb-prod is ALREADY CORRECT and must not be changed: overlays/tb-prod pairs
+# sg-08711bcc50c7b1e18, which IS mzla-eks-tb-prod01's EKS-managed SG (tagged), and tb-prod
+# emits no such events. Verified 2026-08-18.
+#
+# Verified nothing depends on these pods carrying the Pulumi SG: a VPC-wide scan found it
+# referenced as a source only by the node SG, for two control-plane->node rules
+# (tcp/1025+ kubelet, tcp/443 extension API servers). Every keycloak dependency keys off
+# the POD SG sg-082f60c7858dfadb9 -- CoreDNS 53 (rule on the EKS-managed SG), JGroups
+# DNS_PING 7800 (self-referencing, for Infinispan clustering), and Neon PrivateLink 5432
+# via sg-0c89de29e9e5bb389.
+#
+# TAKES EFFECT ON POD RESTART, not on sync: pod SGs bind at admission when the branch ENI
+# is created. For this StatefulSet that means a rolling restart, so pick the moment --
+# same-image restarts are safe for the DNS_PING/Infinispan cluster, but do not combine it
+# with a version bump.
 apiVersion: vpcresources.k8s.aws/v1beta1
 kind: SecurityGroupPolicy
 metadata:
@@ -16,5 +49,5 @@ spec:
       app.kubernetes.io/name: keycloak-customer
   securityGroups:
     groupIds:
-      - sg-07624df6ceb8865ec
+      - sg-08c51d43c4a250a81
       - sg-082f60c7858dfadb9
