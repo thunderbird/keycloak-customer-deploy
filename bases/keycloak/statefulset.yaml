@@ -118,15 +118,35 @@ spec:
               value: xforwarded
             - name: KC_HTTP_ENABLED
               value: "true"
-            # Clustering: Infinispan DNS_PING via the headless service
+            # Clustering: Infinispan with JGroups JDBC_PING discovery (Keycloak's default
+            # from 26.0 onward -- reached by leaving KC_CACHE_STACK UNSET).
+            #
+            # This replaced KC_CACHE_STACK=kubernetes + -Djgroups.dns.query=<headless svc>,
+            # i.e. DNS_PING, which Keycloak 26.5.7 deprecates on every startup:
+            #   "cache-stack=kubernetes: Use 'jdbc-ping' instead by leaving it unset."
+            #
+            # JDBC_PING discovers peers through a JGROUPSPING table in Keycloak's own
+            # database (Keycloak creates and maintains it), so discovery no longer depends
+            # on headless-Service DNS. The headless Service is still required for the
+            # StatefulSet's stable pod DNS -- do not delete it.
+            #
+            # *** THIS IS A DISCOVERY PROTOCOL CHANGE, NOT A FLAG RENAME. *** During a
+            # ROLLING restart the old pods still speak DNS_PING and the new ones speak
+            # JDBC_PING, so they cannot see each other: you get two single-member clusters
+            # and the ispn caches (sessions, authenticationSessions, actionTokens) split.
+            # The practical symptom is users being logged out, and -- as seen on tb-dev
+            # 2026-08-18 -- a window where a replica is Ready but cannot authenticate,
+            # which fails LOGIN with userId="null" / invalid_user_credentials.
+            #
+            # Roll it out per environment accordingly:
+            #   tb-dev  -- a rolling restart is acceptable; sessions there are disposable.
+            #   tb-prod -- SCALE TO ZERO, then back up, inside a maintenance window. Do NOT
+            #              rolling-restart, and do NOT combine this with an image bump.
             - name: KC_CACHE
               value: ispn
-            - name: KC_CACHE_STACK
-              value: kubernetes
             - name: JAVA_OPTS_APPEND
               value: >-
                 -Xms1g -Xmx1536m
-                -Djgroups.dns.query=keycloak-customer-headless.keycloak-customer.svc.cluster.local
             # Health and metrics
             - name: KC_HEALTH_ENABLED
               value: "true"
