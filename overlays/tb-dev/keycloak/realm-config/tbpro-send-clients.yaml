@@ -1,0 +1,61 @@
+# keycloak-config-cli import: tb-dev env-specific config for the two tbpro OIDC
+# clients Thunderbird Send needs (platform-infrastructure#712, part of the Send
+# EKS migration #695).
+#
+# Reconciled by apply-client-config.sh on every Keycloak start, in no-delete mode
+# -- config-cli only ADDS/UPDATES these clients and never deletes other tbpro
+# clients/users/flows. Because it re-runs on every start, a Neon branch reset
+# (which reverts the realm to the stage clone and wipes these) self-repairs with
+# no manual kcadm step, exactly like tbpro-accounts-client.yaml.
+#
+# TWO clients, mirroring the thunderbird-appointment pair, because Send has two
+# distinct OIDC roles (verified in tbpro-add-on packages/send):
+#   - the SPA is a PUBLIC client using the auth-code flow via oidc-client-ts
+#     (frontend reads VITE_/APP_OIDC_CLIENT_ID);
+#   - the backend is a CONFIDENTIAL client that validates bearer tokens by
+#     RFC 7662 introspection (reads OIDC_CLIENT_ID + OIDC_CLIENT_SECRET).
+# A public client cannot introspect, so one shared client will not work.
+#
+# Pattern C: the SPA and the API share ONE origin
+# (https://send.tb-dev.thunderbird.dev), so the redirect/web-origin host is the
+# same for both. There is no separate send-backend host on EKS.
+realm: tbpro
+clients:
+  # --- public SPA client (browser auth-code + PKCE) ---
+  - clientId: thunderbird-send-frontend
+    name: Thunderbird Send (SPA, tb-dev)
+    enabled: true
+    publicClient: true
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    rootUrl: "https://send.tb-dev.thunderbird.dev"
+    baseUrl: "/"
+    redirectUris:
+      # oidc-client-ts returns the browser to the SPA origin after login/logout.
+      - "https://send.tb-dev.thunderbird.dev/*"
+    webOrigins:
+      - "https://send.tb-dev.thunderbird.dev"
+    attributes:
+      # validate post-logout redirects against the registered redirect URIs
+      "post.logout.redirect.uris": "+"
+      # public client => PKCE is required, not optional
+      "pkce.code.challenge.method": "S256"
+
+  # --- confidential backend client (RFC 7662 token introspection) ---
+  # The secret is NOT set here: config-cli would need it in plaintext, and the
+  # backend reads it from the mzla/tb-dev/send Secrets Manager bundle via ESO as
+  # OIDC_CLIENT_SECRET. Keycloak generates a secret on creation; it must be copied
+  # into that bundle once (platform-infrastructure#711).
+  - clientId: thunderbird-send-backend
+    name: Thunderbird Send (backend introspection, tb-dev)
+    enabled: true
+    publicClient: false
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    rootUrl: "https://send.tb-dev.thunderbird.dev"
+    redirectUris:
+      - "https://send.tb-dev.thunderbird.dev/*"
+    webOrigins:
+      - "https://send.tb-dev.thunderbird.dev"
