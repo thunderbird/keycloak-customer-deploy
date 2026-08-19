@@ -16,7 +16,12 @@
 
 set -uo pipefail
 
-CONFIG_FILE='/config/tbpro-accounts-client.yaml'
+# Both tbpro client-config imports. config-cli's IMPORT_FILES_LOCATIONS takes a
+# comma-separated list, so adding a file here is all that is needed -- but note the
+# ConfigMap in kustomization.yaml must ship it too, or the path will not exist.
+#   tbpro-accounts-client.yaml : the thunderbird-accounts client
+#   tbpro-send-clients.yaml    : the Send SPA + backend pair (#712)
+CONFIG_FILES='/config/tbpro-accounts-client.yaml,/config/tbpro-send-clients.yaml'
 CONFIG_CLI_JAR='/opt/keycloak/keycloak-config-cli.jar'
 # Management interface (health/metrics) -- enabled via KC_HEALTH_ENABLED=true.
 HEALTH_PORT="${KC_HTTP_MANAGEMENT_PORT:-9000}"
@@ -55,7 +60,7 @@ export KEYCLOAK_REALM=master
 export KEYCLOAK_GRANTTYPE=client_credentials
 export KEYCLOAK_CLIENTID="${KEYCLOAK_ADMIN_CLIENT_ID:-tb-accounts-admin}"
 export KEYCLOAK_CLIENTSECRET="${KEYCLOAK_ADMIN_CLIENT_SECRET}"
-export IMPORT_FILES_LOCATIONS="${CONFIG_FILE}"
+export IMPORT_FILES_LOCATIONS="${CONFIG_FILES}"
 export IMPORT_VARSUBSTITUTION_ENABLED=false
 # Reconcile on every start (config-cli otherwise checksums the file and skips, so
 # drift from a reset would never be repaired). The import is idempotent.
