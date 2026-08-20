@@ -91,6 +91,29 @@ spec:
             # tb-accounts-admin SA). Un-skips the image's apply-mfa-config.sh AND
             # drives apply-client-config.sh. Secret is the cloned stage value, so it
             # keeps matching after a Neon branch reset.
+            # tbpro LOGIN THEME placeholders. The theme is baked into the
+            # thunderbird-accounts image and reads these via
+            # keycloak/themes/tbpro/login/theme.properties:
+            #   tbproPrimaryDomain=${env.KC_TBPRO_PRIMARY_DOMAIN}
+            # Keycloak expands ${env.X} there, and leaves the LITERAL when the var
+            # is unset -- which is what was happening: the login page rendered
+            # `Did you mean aatchison@${env.KC_TBPRO_PRIMARY_DOMAIN} ?`, and the
+            # account console (a redirect stub using KC_TBPRO_HOME) dead-ended.
+            # Stage ECS runs the same image and renders correctly, which is what
+            # proved this is a missing env var and not a theme bug.
+            #
+            # PRIMARY_DOMAIN is stage-thundermail.com and not a tb-dev domain: this
+            # Keycloak is a copy-on-write Neon clone of stage, so the users really
+            # are @stage-thundermail.com. Matches accounts-deploy env/tb-dev
+            # ALLOWED_EMAIL_DOMAINS.
+            - name: KC_TBPRO_PRIMARY_DOMAIN
+              value: stage-thundermail.com
+            - name: KC_TBPRO_HOME
+              value: https://accounts.tb-dev.thunderbird.dev/
+            - name: KC_TBPRO_SIGN_UP
+              value: https://accounts.tb-dev.thunderbird.dev/sign-up
+            - name: KC_TBPRO_CONTACT
+              value: https://accounts.tb-dev.thunderbird.dev/contact
             - name: KEYCLOAK_ADMIN_CLIENT_ID
               value: tb-accounts-admin
             - name: KEYCLOAK_ADMIN_CLIENT_SECRET
