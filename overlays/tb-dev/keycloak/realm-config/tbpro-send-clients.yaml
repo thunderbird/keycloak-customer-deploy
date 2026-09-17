@@ -59,3 +59,32 @@ clients:
       - "https://send.tb-dev.thunderbird.dev/*"
     webOrigins:
       - "https://send.tb-dev.thunderbird.dev"
+
+  # --- confidential service-account client (server-to-server, no browser) ---
+  # Thunderbird Accounts' backend needs to call Send's INTERNAL storage endpoint
+  # server-to-server, so it authenticates as itself via the OAuth2 client-
+  # credentials grant (serviceAccountsEnabled) and gets a bearer token Send then
+  # introspects with the thunderbird-send-backend client above (tbpro-add-on#1216
+  # milestone, tbpro-add-on#1245). This is NOT a browser client: no auth-code
+  # flow, no direct-access grants, and no redirect/web-origin/rootUrl -- there is
+  # no user login and no return-to-app hop, only a machine-to-machine token.
+  #
+  # Short access-token lifespan (300s): these are ephemeral service tokens minted
+  # per call, so a tight TTL limits the blast radius of a leaked token without a
+  # UX cost (no interactive session to re-prompt).
+  #
+  # The secret is NOT set here (same reason as the backend client: config-cli
+  # would need it in plaintext). Keycloak generates a secret on creation; it must
+  # be copied ONCE into ACCOUNTS' -- not Send's -- mzla/tb-dev Secrets Manager
+  # bundle via ESO, because Accounts is the caller that reads it
+  # (platform-infrastructure#711 pattern).
+  - clientId: tb-accounts-send-integration
+    name: Accounts -> Send internal API (service account, tb-dev)
+    enabled: true
+    publicClient: false
+    serviceAccountsEnabled: true
+    standardFlowEnabled: false
+    directAccessGrantsEnabled: false
+    attributes:
+      # short-lived service tokens (minted per call, no interactive session)
+      "access.token.lifespan": "300"
