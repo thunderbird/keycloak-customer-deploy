@@ -34,7 +34,7 @@ clients:
     webOrigins:
       - "https://accounts.main.dev-thundermail.com"
       - "https://accounts-main.tail2726a2.ts.net"
-      - "accounts-stage.tb.pro"
+      - "https://accounts-stage.tb.pro"
     attributes:
       # validate post-logout redirects against the registered redirect URIs
       "post.logout.redirect.uris": "+"

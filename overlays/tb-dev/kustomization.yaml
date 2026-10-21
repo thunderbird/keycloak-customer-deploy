@@ -36,7 +36,7 @@ images:
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
   digest: sha256:253c3c0d1585eef9764726dd116bd1a78e252bc199f0f405a808d9088f85bb26
 patches:
-# Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
+# Keycloak workload: public + tailnet admin hostnames + Neon branch DB host
 - path: keycloak/statefulset.yaml
 # ExternalSecret remoteRef keys -> mzla/tb-dev/*
 - target:

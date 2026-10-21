@@ -1,5 +1,6 @@
 # Public, internet-facing ALB Ingress for the tb-dev Customer Auth Keycloak (auth host
-# auth.main.dev-thundermail.com); the real-domain / prod cutover stays gated (#142).
+# auth.main.dev-thundermail.com); the real-domain / prod cutover stays gated
+# (platform-infrastructure#142).
 #
 # The AWS Load Balancer Controller (chart v3.4.x, SA aws-lb-controller in kube-system)
 # provisions an internet-facing ALB with an HTTPS:443 listener using the
@@ -16,9 +17,10 @@
 # hostname-admin only changes generated URLs -- it does NOT gate endpoints by Host. So
 # the admin console (/admin) and admin REST (/admin/realms/*) plus the master realm
 # (/realms/master) are DENIED with an ALB fixed-response 403 at this public edge (rules
-# below, ordered before the catch-all). The accounts back-channel reaches
-# /admin/realms/tbpro over the in-cluster Service, which never traverses this ALB, so the
-# deny does not affect it. Customer flows (/realms/tbpro/*, the account console) stay public.
+# below; the LBC orders Prefix paths longest-first, so they win over the catch-all).
+# The accounts back-channel reaches /admin/realms/tbpro over the in-cluster Service,
+# which never traverses this ALB, so the deny does not affect it. Customer flows
+# (/realms/tbpro/*, the account console) stay public.
 #
 # DNS: Cloudflare external-dns (platform-infrastructure#1452) publishes
 # auth.main.dev-thundermail.com -> the ALB from the external-dns.alpha.kubernetes.io/hostname
@@ -41,6 +43,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
     # *.main.dev-thundermail.com wildcard (mzla-tb-dev Pulumi, platform-infrastructure#1453).
     alb.ingress.kubernetes.io/certificate-arn: REPLACE_ME_MAIN_WILDCARD_CERT_ARN
     # ALB does TLS->plaintext; backend speaks HTTP to the keycloak service.
@@ -60,7 +63,7 @@ spec:
     - host: auth.main.dev-thundermail.com
       http:
         paths:
-          # Admin deny rules FIRST so they win over the catch-all forward below.
+          # Admin deny rules. The LBC orders Prefix paths longest-first, so these win over /.
           # /admin covers the admin console and the /admin/realms/* admin REST API.
           - path: /admin
             pathType: Prefix

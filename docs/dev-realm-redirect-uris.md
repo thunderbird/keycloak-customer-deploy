@@ -33,9 +33,10 @@ That client is part of the **cloned stage `master` realm**, and its secret is st
 keeps matching after a branch reset. (Wiring this also un-skips the image's
 `apply-mfa-config.sh`, which was silently skipping on tb-dev because the secret was unset.)
 
-**Safety:** `IMPORT_MANAGED_CLIENT=no-delete` — config-cli only adds/updates the one
-listed client. It never deletes other `tbpro` clients or the ~150 real users. Verified
-live: client/user counts unchanged across a reconcile.
+**Safety:** `IMPORT_MANAGED_CLIENT=no-delete` — config-cli only adds/updates the listed
+clients (`thunderbird-accounts` and the two Send clients). It never deletes other `tbpro`
+clients or the ~150 real users. Verified live: client/user counts unchanged across a
+reconcile.
 
 ## After a Neon branch reset
 
