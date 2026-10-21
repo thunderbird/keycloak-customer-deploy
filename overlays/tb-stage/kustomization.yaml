@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: keycloak-customer
+resources:
+- ../../bases
+- keycloak/public-ingress.yaml
+- keycloak/tailscale-ingress.yaml
+- keycloak/securitygrouppolicy.yaml
+- keycloak/admin-client-externalsecret.yaml
+configMapGenerator:
+- name: keycloak-realm-config
+  files:
+  - keycloak/realm-config/tbpro-accounts-client.yaml
+- name: keycloak-realm-config-scripts
+  files:
+  - keycloak/realm-config/entry.sh
+  - keycloak/realm-config/apply-master-frontendurl.sh
+images:
+- name: REPLACE_MZLA_ECR/keycloak-customer
+  newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
+  digest: sha256:259dc85b50cf71f6423c08d67d9e6e450f1108b5dcfdbff03c8b16ae593c9ea4
+patches:
+- path: keycloak/statefulset.yaml
+- target:
+    group: external-secrets.io
+    version: v1
+    kind: ExternalSecret
+    name: keycloak-customer-db
+  patch: |-
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mzla/tb-stage/keycloak-customer-db
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mzla/tb-stage/keycloak-customer-db
+- target:
+    group: external-secrets.io
+    version: v1
+    kind: ExternalSecret
+    name: keycloak-customer-admin
+  patch: |-
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mzla/tb-stage/keycloak-customer-admin
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mzla/tb-stage/keycloak-customer-admin
