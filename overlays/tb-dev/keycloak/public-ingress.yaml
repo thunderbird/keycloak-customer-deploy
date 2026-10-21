@@ -4,7 +4,7 @@
 # The AWS Load Balancer Controller (chart v3.4.x, SA aws-lb-controller in kube-system)
 # provisions an internet-facing ALB with an HTTPS:443 listener using the
 # *.main.dev-thundermail.com ACM wildcard certificate (certificate-arn below), issued by
-# the mzla-tb-dev Pulumi stack in platform-infrastructure (#1453).
+# the mzla-tb-dev Pulumi stack (platform-infrastructure#1453).
 #
 # TLS terminates at the ALB; the ALB forwards plaintext HTTP to the keycloak-customer
 # ClusterIP service :80 -> pod :8080. Keycloak runs with --proxy-headers xforwarded
@@ -20,9 +20,9 @@
 # /admin/realms/tbpro over the in-cluster Service, which never traverses this ALB, so the
 # deny does not affect it. Customer flows (/realms/tbpro/*, the account console) stay public.
 #
-# DNS: Cloudflare external-dns (#1452) publishes auth.main.dev-thundermail.com -> the ALB
-# from the external-dns.alpha.kubernetes.io/hostname annotation, into the
-# dev-thundermail.com zone.
+# DNS: Cloudflare external-dns (platform-infrastructure#1452) publishes
+# auth.main.dev-thundermail.com -> the ALB from the external-dns.alpha.kubernetes.io/hostname
+# annotation, into the dev-thundermail.com zone.
 #
 # target-type ip routes directly to pod IPs (VPC CNI). PREREQUISITE: under strict pod-SG
 # mode the keycloak pod SG replaces the node SG, so the ALB can only reach the pods with
@@ -41,7 +41,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    # *.main.dev-thundermail.com wildcard from the mzla-tb-dev Pulumi stack (#1453).
+    # *.main.dev-thundermail.com wildcard (mzla-tb-dev Pulumi, platform-infrastructure#1453).
     alb.ingress.kubernetes.io/certificate-arn: REPLACE_ME_MAIN_WILDCARD_CERT_ARN
     # ALB does TLS->plaintext; backend speaks HTTP to the keycloak service.
     alb.ingress.kubernetes.io/backend-protocol: HTTP
@@ -52,7 +52,7 @@ metadata:
     # Fixed-response 403 reused by the admin deny rules below (admin is tailnet-only).
     alb.ingress.kubernetes.io/actions.deny-admin: >-
       {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden: admin is available on the internal network only."}}
-    # Cloudflare external-dns (#1452) publishes this record into dev-thundermail.com.
+    # Cloudflare external-dns (platform-infrastructure#1452) publishes this into dev-thundermail.com.
     external-dns.alpha.kubernetes.io/hostname: auth.main.dev-thundermail.com
 spec:
   ingressClassName: alb
