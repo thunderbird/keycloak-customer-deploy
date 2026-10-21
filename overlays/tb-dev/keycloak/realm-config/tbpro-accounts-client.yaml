@@ -15,25 +15,25 @@
 realm: tbpro
 clients:
   - clientId: thunderbird-accounts
-    rootUrl: "https://accounts.tb-dev.thunderbird.dev"
+    rootUrl: "https://accounts.main.dev-thundermail.com"
     baseUrl: "/"
-    adminUrl: "https://accounts.tb-dev.thunderbird.dev"
+    adminUrl: "https://accounts.main.dev-thundermail.com"
     redirectUris:
       # public ALB host
-      - "https://accounts.tb-dev.thunderbird.dev/oidc/callback/*"
-      - "https://accounts.tb-dev.thunderbird.dev/login/"
-      - "https://accounts.tb-dev.thunderbird.dev/logout/callback"
+      - "https://accounts.main.dev-thundermail.com/oidc/callback/*"
+      - "https://accounts.main.dev-thundermail.com/login/"
+      - "https://accounts.main.dev-thundermail.com/logout/callback"
       # tailnet host (used to reach /admin)
-      - "https://accounts-tb-dev.tail2726a2.ts.net/oidc/callback/*"
-      - "https://accounts-tb-dev.tail2726a2.ts.net/login/"
-      - "https://accounts-tb-dev.tail2726a2.ts.net/logout/callback"
+      - "https://accounts-main.tail2726a2.ts.net/oidc/callback/*"
+      - "https://accounts-main.tail2726a2.ts.net/login/"
+      - "https://accounts-main.tail2726a2.ts.net/logout/callback"
       # stage entries restored by the clone; harmless on tb-dev, kept so the list
       # is authoritative and stable across reconciles
       - "https://accounts-stage.tb.pro/oidc/callback/*"
       - "https://accounts-stage.tb.pro/login/"
     webOrigins:
-      - "https://accounts.tb-dev.thunderbird.dev"
-      - "https://accounts-tb-dev.tail2726a2.ts.net"
+      - "https://accounts.main.dev-thundermail.com"
+      - "https://accounts-main.tail2726a2.ts.net"
       - "accounts-stage.tb.pro"
     attributes:
       # validate post-logout redirects against the registered redirect URIs

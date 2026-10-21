@@ -1,5 +1,5 @@
 # Tailnet Ingress for the tb-dev Customer Auth Keycloak. Now that the customer auth
-# host is public (keycloak/public-ingress.yaml -> auth.tb-dev.thunderbird.dev), this
+# host is public (keycloak/public-ingress.yaml -> auth.main.dev-thundermail.com), this
 # tailnet host is the ADMIN path: KC_HOSTNAME_ADMIN points admin console/REST URLs here,
 # and the public ALB denies /admin + /realms/master (403), so admin is never publicly
 # exposed. It still serves the whole service over the tailnet for admin/ops.
@@ -8,7 +8,7 @@
 #   - tailscale.com/funnel: would expose the service publicly.
 #   - tailscale.com/tags: operator default (tag:k8s-mzla-tb-dev) is correct.
 #   - tailscale.com/hostname: tls.hosts[0] is the documented hostname source.
-# Operator appends .<TAILNET>.ts.net -> keycloak-customer-tb-dev.tail2726a2.ts.net
+# Operator appends .<TAILNET>.ts.net -> auth-main.tail2726a2.ts.net
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -20,7 +20,7 @@ spec:
   ingressClassName: tailscale
   tls:
     - hosts:
-        - keycloak-customer-tb-dev
+        - auth-main
   defaultBackend:
     service:
       name: keycloak-customer

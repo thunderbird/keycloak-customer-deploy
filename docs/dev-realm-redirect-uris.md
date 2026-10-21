@@ -50,7 +50,7 @@ Then verify accounts login returns HTTP 200 (not 400 `invalid_redirect_uri`):
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' \
-  "https://auth.tb-dev.thunderbird.dev/realms/tbpro/protocol/openid-connect/auth?client_id=thunderbird-accounts&redirect_uri=https%3A%2F%2Faccounts.tb-dev.thunderbird.dev%2Foidc%2Fcallback%2F&response_type=code&scope=openid&state=probe"
+  "https://auth.main.dev-thundermail.com/realms/tbpro/protocol/openid-connect/auth?client_id=thunderbird-accounts&redirect_uri=https%3A%2F%2Faccounts.main.dev-thundermail.com%2Foidc%2Fcallback%2F&response_type=code&scope=openid&state=probe"
 ```
 
 To watch the reconcile itself: `kubectl --context tb-dev logs keycloak-customer-0 -c keycloak | grep -i 'apply-client-config\|config-cli\|Importing'`.
