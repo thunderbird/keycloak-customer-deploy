@@ -18,7 +18,7 @@ configMapGenerator:
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
-  digest: sha256:259dc85b50cf71f6423c08d67d9e6e450f1108b5dcfdbff03c8b16ae593c9ea4
+  digest: sha256:a9442162120b4b00149cf08bca723d86188c9ce220950bf73945659ce5d3b4d5
 patches:
 - path: keycloak/statefulset.yaml
 - target:
