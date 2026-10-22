@@ -8,7 +8,7 @@
 # resources the console loads — are built from the master realm's frontend URL, which
 # by default resolves to the global KC_HOSTNAME (the PUBLIC host). So a console loaded
 # over the tailnet still fires its master login + session-iframe requests at
-# auth.tb-dev.thunderbird.dev/realms/master/..., which the public ALB deliberately
+# auth.main.dev-thundermail.com/realms/master/..., which the public ALB deliberately
 # 403-denies -> the admin console login/session breaks.
 #
 # Fix: set a per-realm `frontendUrl` on the master realm to the private admin host.
