@@ -10,4 +10,4 @@ spec:
   securityGroups:
     groupIds:
       - sg-0923865569772cc07
-      - REPLACE_ME_KEYCLOAK_POD_SG
+      - sg-093057b98bc23cda2
