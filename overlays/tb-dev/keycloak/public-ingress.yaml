@@ -13,7 +13,7 @@
 # emits correct https://auth.main.dev-thundermail.com URLs. KC_HOSTNAME_STRICT=true (base).
 #
 # ADMIN STAYS TAILNET-ONLY. KC_HOSTNAME_ADMIN points admin URLs at the tailnet Ingress
-# (keycloak/tailscale-ingress.yaml -> auth-main.tail2726a2.ts.net), but
+# (keycloak/tailscale-ingress.yaml -> auth-main-dev-thundermail.tail2726a2.ts.net), but
 # hostname-admin only changes generated URLs -- it does NOT gate endpoints by Host. So
 # the admin console (/admin) and admin REST (/admin/realms/*) plus the master realm
 # (/realms/master) are DENIED with an ALB fixed-response 403 at this public edge (rules
