@@ -3,8 +3,8 @@ kind: Kustomization
 namespace: keycloak-customer
 resources:
 - ../../bases
-# Public internet-facing ALB Ingress for the auth host (auth.tb-dev.thunderbird.dev),
-# thunderbird.dev TEST domain; admin (/admin, /realms/master) denied 403 at the edge.
+# Public internet-facing ALB Ingress for the auth host (auth.main.dev-thundermail.com);
+# admin (/admin, /realms/master) denied 403 at the edge.
 - keycloak/public-ingress.yaml
 # Tailnet Ingress: now the ADMIN path (KC_HOSTNAME_ADMIN points here); still serves
 # the whole service over the tailnet for admin/ops.
@@ -36,7 +36,7 @@ images:
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
   digest: sha256:253c3c0d1585eef9764726dd116bd1a78e252bc199f0f405a808d9088f85bb26
 patches:
-# Keycloak workload: tailnet hostname + Neon branch DB host (dev is tailnet-only)
+# Keycloak workload: public + tailnet admin hostnames + Neon branch DB host
 - path: keycloak/statefulset.yaml
 # ExternalSecret remoteRef keys -> mzla/tb-dev/*
 - target:
