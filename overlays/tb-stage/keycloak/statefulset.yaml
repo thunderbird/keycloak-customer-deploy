@@ -21,7 +21,7 @@ spec:
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
             - name: KC_TBPRO_PRIMARY_DOMAIN
-              value: stage-thundermail.com
+              value: tb-stage.thunderbird.dev
             - name: KC_TBPRO_HOME
               value: https://accounts.stage-thundermail.com/
             - name: KC_TBPRO_SIGN_UP
