@@ -11,13 +11,13 @@ ATTEMPTS="${RECONCILE_ATTEMPTS:-3}"
 BACKOFF="${RECONCILE_BACKOFF:-25}"
 
 kc_ready() {
-    exec 3<>"/dev/tcp/localhost/${HEALTH_PORT}" 2>/dev/null || return 1
+    exec 3<>"/dev/tcp/localhost/${HEALTH_PORT}" || return 1
     printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
     local status_line
     IFS= read -r status_line <&3
     exec 3>&- 3<&-
     [[ "$status_line" == *" 200 "* ]]
-}
+} 2>/dev/null
 
 for _ in $(seq 1 90); do
     kc_ready && break
