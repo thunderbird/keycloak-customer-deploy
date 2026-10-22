@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: keycloak-customer-tb-stage
+  name: auth-stage-thundermail
   namespace: keycloak-customer
   annotations:
     argocd.argoproj.io/sync-wave: "10"
@@ -9,7 +9,7 @@ spec:
   ingressClassName: tailscale
   tls:
     - hosts:
-        - keycloak-customer-tb-stage
+        - auth-stage-thundermail
   defaultBackend:
     service:
       name: keycloak-customer

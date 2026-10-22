@@ -20,7 +20,7 @@ bases/
               db/admin ExternalSecrets, VMServiceScrape
 overlays/
   tb-dev/     tailnet-only (Tailscale Ingress); Neon branch mzla-tb-dev; 2 replicas
-  tb-stage/   public ALB (auth.tb-stage.thunderbird.dev) + tailnet admin; Neon branch of legacy stage; 2 replicas
+  tb-stage/   public ALB (auth.stage-thundermail.com) + tailnet admin; Neon branch of legacy stage; 2 replicas
   tb-prod/    tailnet-only validation; Neon branch mzla-tb-prod; 2 replicas
               (public Cloudflare tunnel + tailnet admin + 3 replicas are kept in the
               overlay dir but unreferenced until the cutover, #142)

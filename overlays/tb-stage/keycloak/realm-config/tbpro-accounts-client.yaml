@@ -1,23 +1,22 @@
-# REPLACE_ME_STALWART_OIDC_CLIENT: add a Stalwart client here if platform-infrastructure#1394 finds one is needed.
 realm: tbpro
 clients:
   - clientId: thunderbird-accounts
-    rootUrl: "https://accounts.tb-stage.thunderbird.dev"
+    rootUrl: "https://accounts.stage-thundermail.com"
     baseUrl: "/"
-    adminUrl: "https://accounts.tb-stage.thunderbird.dev"
+    adminUrl: "https://accounts.stage-thundermail.com"
     redirectUris:
-      - "https://accounts.tb-stage.thunderbird.dev/oidc/callback/*"
-      - "https://accounts.tb-stage.thunderbird.dev/login/"
-      - "https://accounts.tb-stage.thunderbird.dev/logout/callback"
-      - "https://accounts-tb-stage.tail2726a2.ts.net/oidc/callback/*"
-      - "https://accounts-tb-stage.tail2726a2.ts.net/login/"
-      - "https://accounts-tb-stage.tail2726a2.ts.net/logout/callback"
+      - "https://accounts.stage-thundermail.com/oidc/callback/*"
+      - "https://accounts.stage-thundermail.com/login/"
+      - "https://accounts.stage-thundermail.com/logout/callback"
+      - "https://accounts-stage-thundermail.tail2726a2.ts.net/oidc/callback/*"
+      - "https://accounts-stage-thundermail.tail2726a2.ts.net/login/"
+      - "https://accounts-stage-thundermail.tail2726a2.ts.net/logout/callback"
       - "https://accounts-stage.tb.pro/oidc/callback/*"
       - "https://accounts-stage.tb.pro/login/"
     webOrigins:
-      - "https://accounts.tb-stage.thunderbird.dev"
-      - "https://accounts-tb-stage.tail2726a2.ts.net"
-      - "accounts-stage.tb.pro"
+      - "https://accounts.stage-thundermail.com"
+      - "https://accounts-stage-thundermail.tail2726a2.ts.net"
+      - "https://accounts-stage.tb.pro"
     attributes:
       "post.logout.redirect.uris": "+"
     protocolMappers:

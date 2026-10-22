@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$KC_DEV" == "yes" ]]; then
     /bin/bash /opt/keycloak/bin/kc.sh start-dev --import-realm &
 else
-    /bin/bash /opt/keycloak/bin/kc.sh start --http-enabled=true --proxy-headers forwarded &
+    /bin/bash /opt/keycloak/bin/kc.sh start --http-enabled=true --proxy-headers xforwarded &
 fi
 KC_PID=$!
 

@@ -11,18 +11,19 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/create-acm-cert: "true"
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/certificate-arn: REPLACE_ME_STAGE_THUNDERMAIL_CERT_ARN
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-port: "9000"
     alb.ingress.kubernetes.io/healthcheck-path: /health/ready
     alb.ingress.kubernetes.io/actions.deny-admin: >-
       {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden: admin is available on the internal network only."}}
-    external-dns.alpha.kubernetes.io/hostname: auth.tb-stage.thunderbird.dev
+    external-dns.alpha.kubernetes.io/hostname: auth.stage-thundermail.com
 spec:
   ingressClassName: alb
   rules:
-    - host: auth.tb-stage.thunderbird.dev
+    - host: auth.stage-thundermail.com
       http:
         paths:
           - path: /admin
