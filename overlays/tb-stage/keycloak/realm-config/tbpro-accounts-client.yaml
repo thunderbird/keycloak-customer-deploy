@@ -1,4 +1,3 @@
-# REPLACE_ME_STALWART_OIDC_CLIENT: add a Stalwart client here if platform-infrastructure#1394 finds one is needed.
 realm: tbpro
 clients:
   - clientId: thunderbird-accounts
