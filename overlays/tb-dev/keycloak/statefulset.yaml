@@ -1,6 +1,6 @@
 # tb-dev patch:
-# - PUBLIC auth hostname (auth.tb-dev.thunderbird.dev, served by the internet-facing
-#   ALB Ingress keycloak/public-ingress.yaml on the thunderbird.dev TEST domain);
+# - PUBLIC auth hostname (auth.main.dev-thundermail.com, served by the internet-facing
+#   ALB Ingress keycloak/public-ingress.yaml);
 #   KC_HOSTNAME_ADMIN keeps the admin console/REST URLs on the tailnet Ingress. Admin
 #   is denied at the public ALB edge (403) -- see keycloak/public-ingress.yaml.
 # - 2 replicas, 500m cpu request so both pods fit the 2-node general pool
@@ -74,11 +74,11 @@ spec:
           env:
             # PUBLIC auth host, served by the internet-facing ALB Ingress.
             - name: KC_HOSTNAME
-              value: https://auth.tb-dev.thunderbird.dev
+              value: https://auth.main.dev-thundermail.com
             # Admin console/REST URLs -> tailnet Ingress (keycloak/tailscale-ingress.yaml).
             # URL generation only; the public ALB edge 403 is the actual admin gate.
             - name: KC_HOSTNAME_ADMIN
-              value: https://keycloak-customer-tb-dev.tail2726a2.ts.net
+              value: https://auth-main-dev-thundermail.tail2726a2.ts.net
             - name: KC_DB_URL_HOST
               valueFrom: null
               value: ep-fragrant-block-a2bv6iw5.eu-central-1.aws.neon.tech
@@ -109,11 +109,11 @@ spec:
             - name: KC_TBPRO_PRIMARY_DOMAIN
               value: stage-thundermail.com
             - name: KC_TBPRO_HOME
-              value: https://accounts.tb-dev.thunderbird.dev/
+              value: https://accounts.main.dev-thundermail.com/
             - name: KC_TBPRO_SIGN_UP
-              value: https://accounts.tb-dev.thunderbird.dev/sign-up
+              value: https://accounts.main.dev-thundermail.com/sign-up
             - name: KC_TBPRO_CONTACT
-              value: https://accounts.tb-dev.thunderbird.dev/contact
+              value: https://accounts.main.dev-thundermail.com/contact
             - name: KEYCLOAK_ADMIN_CLIENT_ID
               value: tb-accounts-admin
             - name: KEYCLOAK_ADMIN_CLIENT_SECRET
