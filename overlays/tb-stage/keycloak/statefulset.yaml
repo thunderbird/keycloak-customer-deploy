@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-customer
+  namespace: keycloak-customer
+spec:
+  template:
+    spec:
+      containers:
+        - name: keycloak
+          resources:
+            requests:
+              cpu: 500m
+          env:
+            - name: KC_HOSTNAME
+              value: https://auth.stage-thundermail.com
+            - name: KC_HOSTNAME_ADMIN
+              value: https://auth-stage-thundermail.tail2726a2.ts.net
+            - name: KC_DB_URL_HOST
+              value: ep-lingering-boat-a2ijscvf.eu-central-1.aws.neon.tech
+            - name: KC_DB_URL_PROPERTIES
+              value: "?sslmode=require"
+            - name: KC_TBPRO_PRIMARY_DOMAIN
+              value: stage-thundermail.com
+            - name: KC_TBPRO_HOME
+              value: https://accounts.stage-thundermail.com/
+            - name: KC_TBPRO_SIGN_UP
+              value: https://accounts.stage-thundermail.com/sign-up
+            - name: KC_TBPRO_CONTACT
+              value: https://accounts.stage-thundermail.com/contact
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_AUTHORIZED_CLIENTS
+              value: thunderbird-accounts
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_STEP_UP_ACR
+              value: "2"
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_STEP_UP_MAX_AGE_SECONDS
+              value: "600"
+            - name: MFA_L1_LOA_MAX_AGE
+              value: "7776000"
+            - name: TBPRO_MAIL_GATE
+              value: CONDITIONAL
+            - name: KEYCLOAK_ADMIN_CLIENT_ID
+              value: tb-accounts-admin
+            - name: KEYCLOAK_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin-client
+                  key: client-secret
+          volumeMounts:
+            # Replaces the image's /scripts/entry.sh in place; the image ENTRYPOINT still runs it.
+            - name: realm-config-scripts
+              mountPath: /scripts/entry.sh
+              subPath: entry.sh
+              readOnly: true
+            - name: realm-config-scripts
+              mountPath: /scripts-extra
+              readOnly: true
+            - name: realm-config
+              mountPath: /opt/keycloak/config-cli/tbpro-accounts-client.yaml
+              subPath: tbpro-accounts-client.yaml
+              readOnly: true
+      volumes:
+        - name: realm-config
+          configMap:
+            name: keycloak-realm-config
+        - name: realm-config-scripts
+          configMap:
+            name: keycloak-realm-config-scripts
+            defaultMode: 0755
