@@ -45,7 +45,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
     # *.main.dev-thundermail.com wildcard (mzla-tb-dev Pulumi, platform-infrastructure#1453).
-    alb.ingress.kubernetes.io/certificate-arn: REPLACE_ME_MAIN_WILDCARD_CERT_ARN
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:718959508124:certificate/c04aaf00-cbb2-4186-8ceb-df434fa7e80c
     # ALB does TLS->plaintext; backend speaks HTTP to the keycloak service.
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     # Health check on the Keycloak management port (9000): /health/ready.
