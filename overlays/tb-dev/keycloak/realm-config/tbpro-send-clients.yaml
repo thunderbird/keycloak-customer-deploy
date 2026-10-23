@@ -34,8 +34,10 @@ clients:
     redirectUris:
       # oidc-client-ts returns the browser to the SPA origin after login/logout.
       - "https://send.tb-dev.thunderbird.dev/*"
+      - "https://send.main.dev-thundermail.com/*"
     webOrigins:
       - "https://send.tb-dev.thunderbird.dev"
+      - "https://send.main.dev-thundermail.com"
     attributes:
       # validate post-logout redirects against the registered redirect URIs
       "post.logout.redirect.uris": "+"
