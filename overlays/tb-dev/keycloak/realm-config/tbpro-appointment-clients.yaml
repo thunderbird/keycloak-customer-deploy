@@ -1,0 +1,22 @@
+realm: tbpro
+clients:
+  - clientId: thunderbird-appointment-frontend
+    enabled: true
+    publicClient: true
+    standardFlowEnabled: true
+    rootUrl: "https://appointment.main.dev-thundermail.com"
+    redirectUris:
+      - "https://appointment.tb-dev.thunderbird.dev/*"
+      - "https://appointment.main.dev-thundermail.com/*"
+    webOrigins:
+      - "https://appointment.tb-dev.thunderbird.dev"
+      - "https://appointment.main.dev-thundermail.com"
+    attributes:
+      "post.logout.redirect.uris": "+"
+      "pkce.code.challenge.method": "S256"
+
+  - clientId: thunderbird-appointment-backend
+    enabled: true
+    publicClient: false
+    standardFlowEnabled: false
+    redirectUris: []
