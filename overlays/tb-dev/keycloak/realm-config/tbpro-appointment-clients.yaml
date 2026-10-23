@@ -15,7 +15,6 @@ clients:
       "post.logout.redirect.uris": "+"
       "pkce.code.challenge.method": "S256"
 
-  # No secret here, so config-cli keeps the live one.
   - clientId: thunderbird-appointment-backend
     enabled: true
     publicClient: false

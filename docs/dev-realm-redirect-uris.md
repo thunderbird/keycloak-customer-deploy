@@ -35,8 +35,8 @@ keeps matching after a branch reset. (Wiring this also un-skips the image's
 
 **Safety:** `IMPORT_MANAGED_CLIENT=no-delete` — config-cli only adds/updates the listed
 clients (`thunderbird-accounts`, the two Send clients and the two Appointment clients).
-It never deletes other `tbpro` clients or the ~150 real users. Verified live: client/user
-counts unchanged across a reconcile.
+It never deletes other `tbpro` clients or the ~150 real users. Verified live in #34, before
+the Appointment clients were added: client/user counts unchanged across a reconcile.
 
 ## After a Neon branch reset
 
