@@ -6,10 +6,8 @@ clients:
     standardFlowEnabled: true
     rootUrl: "https://appointment.main.dev-thundermail.com"
     redirectUris:
-      - "https://appointment.tb-dev.thunderbird.dev/*"
       - "https://appointment.main.dev-thundermail.com/*"
     webOrigins:
-      - "https://appointment.tb-dev.thunderbird.dev"
       - "https://appointment.main.dev-thundermail.com"
     attributes:
       "post.logout.redirect.uris": "+"
