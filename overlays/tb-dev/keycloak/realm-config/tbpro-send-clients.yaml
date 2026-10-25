@@ -43,6 +43,17 @@ clients:
       "post.logout.redirect.uris": "+"
       # public client => PKCE is required, not optional
       "pkce.code.challenge.method": "S256"
+    protocolMappers:
+      - name: send backend audience
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: thunderbird-send-backend
+          id.token.claim: "false"
+          lightweight.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"
 
   # --- confidential backend client (RFC 7662 token introspection) ---
   # The secret is NOT set here: config-cli would need it in plaintext, and the
