@@ -17,7 +17,7 @@
 # A public client cannot introspect, so one shared client will not work.
 #
 # Pattern C: the SPA and the API share ONE origin
-# (https://send.tb-dev.thunderbird.dev), so the redirect/web-origin host is the
+# (https://send.main.dev-thundermail.com), so the redirect/web-origin host is the
 # same for both. There is no separate send-backend host on EKS.
 realm: tbpro
 clients:
@@ -29,20 +29,29 @@ clients:
     standardFlowEnabled: true
     directAccessGrantsEnabled: false
     serviceAccountsEnabled: false
-    rootUrl: "https://send.tb-dev.thunderbird.dev"
+    rootUrl: "https://send.main.dev-thundermail.com"
     baseUrl: "/"
     redirectUris:
       # oidc-client-ts returns the browser to the SPA origin after login/logout.
-      - "https://send.tb-dev.thunderbird.dev/*"
       - "https://send.main.dev-thundermail.com/*"
     webOrigins:
-      - "https://send.tb-dev.thunderbird.dev"
       - "https://send.main.dev-thundermail.com"
     attributes:
       # validate post-logout redirects against the registered redirect URIs
       "post.logout.redirect.uris": "+"
       # public client => PKCE is required, not optional
       "pkce.code.challenge.method": "S256"
+    protocolMappers:
+      - name: send backend audience
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: thunderbird-send-backend
+          id.token.claim: "false"
+          lightweight.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"
 
   # --- confidential backend client (RFC 7662 token introspection) ---
   # The secret is NOT set here: config-cli would need it in plaintext, and the
@@ -53,11 +62,9 @@ clients:
     name: Thunderbird Send (backend introspection, tb-dev)
     enabled: true
     publicClient: false
-    standardFlowEnabled: true
+    standardFlowEnabled: false
     directAccessGrantsEnabled: false
     serviceAccountsEnabled: false
-    rootUrl: "https://send.tb-dev.thunderbird.dev"
-    redirectUris:
-      - "https://send.tb-dev.thunderbird.dev/*"
-    webOrigins:
-      - "https://send.tb-dev.thunderbird.dev"
+    rootUrl: "https://send.main.dev-thundermail.com"
+    redirectUris: []
+    webOrigins: []
