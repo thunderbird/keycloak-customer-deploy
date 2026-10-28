@@ -16,12 +16,13 @@
 
 set -uo pipefail
 
-# Both tbpro client-config imports. config-cli's IMPORT_FILES_LOCATIONS takes a
+# The tbpro client-config imports. config-cli's IMPORT_FILES_LOCATIONS takes a
 # comma-separated list, so adding a file here is all that is needed -- but note the
 # ConfigMap in kustomization.yaml must ship it too, or the path will not exist.
 #   tbpro-accounts-client.yaml : the thunderbird-accounts client
 #   tbpro-send-clients.yaml    : the Send SPA + backend pair (#712)
-CONFIG_FILES='/config/tbpro-accounts-client.yaml,/config/tbpro-send-clients.yaml'
+#   tbpro-appointment-clients.yaml : the Appointment frontend + backend pair (#1486)
+CONFIG_FILES='/config/tbpro-accounts-client.yaml,/config/tbpro-send-clients.yaml,/config/tbpro-appointment-clients.yaml'
 CONFIG_CLI_JAR='/opt/keycloak/keycloak-config-cli.jar'
 # Management interface (health/metrics) -- enabled via KC_HEALTH_ENABLED=true.
 HEALTH_PORT="${KC_HTTP_MANAGEMENT_PORT:-9000}"
