@@ -58,6 +58,10 @@ spec:
               mountPath: /opt/keycloak/config-cli/tbpro-accounts-client.yaml
               subPath: tbpro-accounts-client.yaml
               readOnly: true
+            - name: realm-config
+              mountPath: /opt/keycloak/config-cli/tbpro-stormbox-clients.yaml
+              subPath: tbpro-stormbox-clients.yaml
+              readOnly: true
       volumes:
         - name: realm-config
           configMap:
