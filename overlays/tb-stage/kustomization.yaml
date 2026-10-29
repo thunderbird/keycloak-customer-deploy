@@ -11,6 +11,7 @@ configMapGenerator:
 - name: keycloak-realm-config
   files:
   - keycloak/realm-config/tbpro-accounts-client.yaml
+  - keycloak/realm-config/tbpro-stormbox-clients.yaml
 - name: keycloak-realm-config-scripts
   files:
   - keycloak/realm-config/entry.sh
