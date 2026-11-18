@@ -12,12 +12,13 @@ resources:
 - keycloak/tailscale-ingress.yaml
 - keycloak/tailscale-admin-ingress.yaml
 - keycloak/securitygrouppolicy.yaml
+- keycloak/admin-client-externalsecret.yaml
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
-  digest: sha256:253c3c0d1585eef9764726dd116bd1a78e252bc199f0f405a808d9088f85bb26
+  digest: sha256:f7d2378efb6e1ef5d731e3949cb27c3adb29c1bb656bbbe01795b71233fb34a2
 patches:
-# Keycloak workload: tailnet hostname + Neon branch DB host, 2 replicas
+# Keycloak workload: public and admin hostnames, legacy DB host, admin client
 - path: keycloak/statefulset.yaml
 # ExternalSecret remoteRef keys -> mzla/tb-prod/*
 - target:
