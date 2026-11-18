@@ -12,7 +12,7 @@ metadata:
   name: keycloak-customer
   namespace: keycloak-customer
 spec:
-  replicas: 0
+  replicas: 2
   template:
     spec:
       containers:
