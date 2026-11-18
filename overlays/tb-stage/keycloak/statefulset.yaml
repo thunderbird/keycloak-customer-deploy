@@ -17,7 +17,7 @@ spec:
             - name: KC_HOSTNAME_ADMIN
               value: https://auth-stage-thundermail.tail2726a2.ts.net
             - name: KC_DB_URL_HOST
-              value: ep-lingering-boat-a2ijscvf.eu-central-1.aws.neon.tech
+              value: ep-proud-surf-a2vszu51.eu-central-1.aws.neon.tech
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
             - name: KC_TBPRO_PRIMARY_DOMAIN
