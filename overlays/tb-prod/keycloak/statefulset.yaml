@@ -24,7 +24,11 @@ spec:
             - name: KC_HOSTNAME_ADMIN
               value: https://keycloak-customer-admin.tail2726a2.ts.net
             - name: KC_DB_URL_HOST
-              value: REPLACE_ME_LEGACY_KEYCLOAK_DB_HOST
+              value: null
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-db
+                  key: host
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
             - name: KC_SPI_THEME_WELCOME_THEME
