@@ -27,3 +27,25 @@ spec:
               value: ep-red-grass-a2xt5722.eu-central-1.aws.neon.tech
             - name: KC_DB_URL_PROPERTIES
               value: "?sslmode=require"
+            - name: KC_SPI_THEME_WELCOME_THEME
+              value: tbpro
+            - name: KC_TBPRO_PRIMARY_DOMAIN
+              value: thundermail.com
+            - name: KC_TBPRO_HOME
+              value: https://accounts.tb.pro/
+            - name: KC_TBPRO_SIGN_UP
+              value: https://accounts.tb.pro/sign-up
+            - name: KC_TBPRO_CONTACT
+              value: https://accounts.tb.pro/contact
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_AUTHORIZED_CLIENTS
+              value: thunderbird-accounts
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_STEP_UP_ACR
+              value: "2"
+            - name: KC_SPI_REALM_RESTAPI_EXTENSION_MFA_STEP_UP_MAX_AGE_SECONDS
+              value: "600"
+            - name: MFA_L1_LOA_MAX_AGE
+              value: "7776000"
+            - name: KC_SPI_LOGIN_PROTOCOL__OPENID_CONNECT__ALLOW_TOKEN_INTROSPECTION_WITHOUT_AUDIENCE_CHECK
+              value: "true"
+            - name: TBPRO_MAIL_GATE
+              value: CONDITIONAL
