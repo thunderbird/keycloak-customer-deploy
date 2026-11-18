@@ -146,7 +146,7 @@ spec:
               value: ispn
             - name: JAVA_OPTS_APPEND
               value: >-
-                -Xms1g -Xmx1536m
+                -Xms1g -Xmx1536m -XX:-UseBASE64Intrinsics
             # Health and metrics
             - name: KC_HEALTH_ENABLED
               value: "true"
