@@ -3,13 +3,14 @@ kind: Kustomization
 namespace: keycloak-customer
 # tb-prod is currently a TAILNET-ONLY validation deployment against the isolated
 # mzla-tb-prod Neon branch (mirrors tb-dev). The public-cutover resources
-# (keycloak/cloudflare-tunnel.yaml, keycloak/cloudflare-externalsecret.yaml,
-# keycloak/tailscale-admin-ingress.yaml) and the 3-replica / minAvailable-2 PDB
+# (keycloak/cloudflare-tunnel.yaml, keycloak/cloudflare-externalsecret.yaml)
+# and the 3-replica / minAvailable-2 PDB
 # patch (keycloak/pdb.yaml) are kept in this directory but intentionally NOT
 # referenced yet -- they are wired in at the prod cutover (#142).
 resources:
 - ../../bases
 - keycloak/tailscale-ingress.yaml
+- keycloak/tailscale-admin-ingress.yaml
 - keycloak/securitygrouppolicy.yaml
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
