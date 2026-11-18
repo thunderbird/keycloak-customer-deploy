@@ -107,8 +107,8 @@ spec:
                 secretKeyRef:
                   name: keycloak-customer-admin
                   key: password
-            # Hostname/proxy. KC_HOSTNAME is patched per overlay (tailnet URL for
-            # tb-dev; auth.tb.pro for tb-prod). Plaintext HTTP behind the
+            # Hostname/proxy. KC_HOSTNAME is patched per overlay (public auth host
+            # for tb-dev; auth.tb.pro for tb-prod). Plaintext HTTP behind the
             # tunnel/ingress; TLS terminates upstream.
             - name: KC_HOSTNAME
               value: REPLACE_OVERLAY_KC_HOSTNAME
@@ -146,7 +146,7 @@ spec:
               value: ispn
             - name: JAVA_OPTS_APPEND
               value: >-
-                -Xms1g -Xmx1536m
+                -Xms1g -Xmx1536m -XX:-UseBASE64Intrinsics
             # Health and metrics
             - name: KC_HEALTH_ENABLED
               value: "true"
