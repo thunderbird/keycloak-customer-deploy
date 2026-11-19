@@ -1,9 +1,8 @@
 # tb-prod patch: KC_HOSTNAME=https://auth.tb.pro, the tailnet KC_HOSTNAME_ADMIN
 # and the legacy Keycloak database.
 #
-# DIRECT Neon endpoint (not -pooler) so Liquibase isn't on PgBouncer; sslmode=require
-# (Neon needs TLS). Creds come from the keycloak-customer-db ExternalSecret
-# (mzla/tb-prod/*).
+# KC_DB_URL_HOST and the creds come from the keycloak-customer-db ExternalSecret
+# (mzla/tb-prod/*); sslmode=require (Neon needs TLS).
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
