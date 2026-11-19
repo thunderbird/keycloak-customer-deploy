@@ -1,13 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: keycloak-customer
-# tb-prod is currently a validation deployment against the isolated
-# mzla-tb-prod Neon branch (mirrors tb-dev). The ALB in
-# keycloak/public-ingress.yaml replaces the Cloudflare tunnel
+# The ALB in keycloak/public-ingress.yaml replaces the Cloudflare tunnel
 # (keycloak/cloudflare-tunnel.yaml, keycloak/cloudflare-externalsecret.yaml);
-# those files stay unreferenced. The 3-replica / minAvailable-2 PDB
-# patch (keycloak/pdb.yaml) is kept in this directory but intentionally NOT
-# referenced yet; it is wired in at the prod cutover (#142).
+# those files and the 3-replica / minAvailable-2 PDB patch (keycloak/pdb.yaml)
+# stay unreferenced.
 resources:
 - ../../bases
 - keycloak/public-ingress.yaml
