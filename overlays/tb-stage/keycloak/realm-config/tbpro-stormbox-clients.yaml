@@ -1,0 +1,107 @@
+realm: tbpro
+clients:
+  - clientId: thunderbird-stormbox
+    name: Stormbox Webmail
+    enabled: true
+    protocol: openid-connect
+    publicClient: true
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    consentRequired: false
+    frontchannelLogout: true
+    fullScopeAllowed: true
+    rootUrl: "https://webmail.stage-thundermail.com"
+    baseUrl: "https://webmail.stage-thundermail.com"
+    redirectUris:
+      - "https://webmail.stage-thundermail.com/*"
+    webOrigins:
+      - "https://webmail.stage-thundermail.com"
+    attributes:
+      "backchannel.logout.revoke.offline.tokens": "false"
+      "backchannel.logout.session.required": "true"
+      "display.on.consent.screen": "false"
+      "frontchannel.logout.session.required": "true"
+      "oauth2.device.authorization.grant.enabled": "false"
+      "oidc.ciba.grant.enabled": "false"
+      "pkce.code.challenge.method": "S256"
+      "post.logout.redirect.uris": "https://webmail.stage-thundermail.com/*"
+      "standard.token.exchange.enabled": "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - roles
+      - profile
+      - include_stalwart_aud
+      - basic
+      - email
+      - tbpro
+    optionalClientScopes:
+      - address
+      - phone
+      - organization
+      - offline_access
+      - tbpro-admin
+      - microprofile-jwt
+    protocolMappers:
+      - name: stalwart audience
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: stalwart
+          id.token.claim: "false"
+          lightweight.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"
+  - clientId: thunderbird-stormbox-test
+    name: sancus stormbox instance
+    enabled: true
+    protocol: openid-connect
+    publicClient: true
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: true
+    serviceAccountsEnabled: false
+    consentRequired: false
+    frontchannelLogout: true
+    fullScopeAllowed: true
+    rootUrl: "https://sancus.thunderbird.net:3000"
+    baseUrl: "https://sancus.thunderbird.net:3000"
+    adminUrl: "https://sancus.thunderbird.net:3000"
+    redirectUris:
+      - "http://localhost:3000/*"
+      - "https://sancus.thunderbird.net:3000/*"
+      - "http://localhost/*"
+    webOrigins:
+      - ""
+      - "+"
+    attributes:
+      "backchannel.logout.revoke.offline.tokens": "false"
+      "backchannel.logout.session.required": "true"
+      "display.on.consent.screen": "false"
+      "dpop.bound.access.tokens": "false"
+      "frontchannel.logout.session.required": "true"
+      "logout.confirmation.enabled": "false"
+      "oauth2.device.authorization.grant.enabled": "false"
+      "oidc.ciba.grant.enabled": "false"
+      "pkce.code.challenge.method": "S256"
+      "post.logout.redirect.uris": "https://sancus.thunderbird.net:3000/*##http://localhost:3000/*##http://localhost/*"
+      "standard.token.exchange.enabled": "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - roles
+      - profile
+      - include_stalwart_aud
+      - basic
+      - email
+      - tbpro
+    optionalClientScopes:
+      - address
+      - phone
+      - organization
+      - offline_access
+      - tbpro-admin
+      - microprofile-jwt
