@@ -12,10 +12,6 @@ resources:
 - keycloak/tailscale-admin-ingress.yaml
 - keycloak/securitygrouppolicy.yaml
 - keycloak/admin-client-externalsecret.yaml
-configMapGenerator:
-- name: keycloak-prod-entry
-  files:
-  - keycloak/realm-config/entry.sh
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
