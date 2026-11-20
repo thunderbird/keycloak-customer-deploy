@@ -10,10 +10,25 @@ metadata:
   namespace: keycloak-customer
 spec:
   replicas: 2
+  updateStrategy:
+    rollingUpdate:
+      partition: 1
   template:
     spec:
       containers:
         - name: keycloak
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              if ! sha256sum --check --status <<<'34d020b58bc87999aa4229c695aaad5c6b62b1d26888eddb2ecdfa068c7bb450  /scripts/entry.sh'; then
+                printf '%s\n' 'Unexpected Keycloak entrypoint. Review the tb-prod startup override before promoting this image.' >&2
+                exit 1
+              fi
+              entrypoint="$(sed -e 's|^SCRIPT_DIR=.*|SCRIPT_DIR=/scripts|' \
+                                -e 's| --proxy-headers forwarded||' /scripts/entry.sh)"
+              exec /bin/bash -c "$entrypoint" /scripts/entry.sh "$@"
+            - --
           resources:
             requests:
               cpu: 500m
