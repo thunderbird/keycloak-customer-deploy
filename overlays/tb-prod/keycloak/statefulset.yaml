@@ -12,8 +12,18 @@ spec:
   replicas: 2
   template:
     spec:
+      volumes:
+        - name: prod-entry
+          configMap:
+            name: keycloak-prod-entry
+            defaultMode: 0755
       containers:
         - name: keycloak
+          volumeMounts:
+            - name: prod-entry
+              mountPath: /scripts/entry.sh
+              subPath: entry.sh
+              readOnly: true
           resources:
             requests:
               cpu: 500m
