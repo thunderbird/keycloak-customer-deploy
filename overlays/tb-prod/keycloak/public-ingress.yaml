@@ -12,6 +12,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http.xff_header_processing.mode=remove
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:689951664252:certificate/30e86b15-fd7d-4703-a9b6-22dc0c63a442
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
