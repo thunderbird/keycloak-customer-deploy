@@ -61,12 +61,17 @@ spec:
             - |
               kcadm=/opt/keycloak/bin/kcadm.sh
               config=/tmp/kcadm.config
-              "$kcadm" config credentials --config "$config" \
-                --server http://keycloak-customer.keycloak-customer.svc.cluster.local \
-                --realm master --client tb-accounts-admin
+              login() {
+                "$kcadm" config credentials --config "$config" \
+                  --server http://keycloak-customer.keycloak-customer.svc.cluster.local \
+                  --realm master --client tb-accounts-admin
+              }
+              login
               "$kcadm" update realms/master --config "$config" \
                 -s "attributes.frontendUrl=$FRONTEND_URL"
-              # Read it back: fail the sync if the write did not persist.
+              # Read it back: fail the sync if the write did not persist. Changing the value
+              # changes the master issuer, so the first token is rejected (401): log in again.
+              login
               attributes="$("$kcadm" get realms/master --config "$config" --fields 'attributes(frontendUrl)')"
               if [[ "$attributes" != *"\"$FRONTEND_URL\""* ]]; then
                 echo "master frontendUrl is not $FRONTEND_URL" >&2
