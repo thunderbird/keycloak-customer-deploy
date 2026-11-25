@@ -50,7 +50,8 @@ kustomize build overlays/tb-dev        # or a single overlay
   branches) — there is no `--import-realm` and no data migration.
 - **Admin front-channel host.** The `master` realm's front-channel (issuer + admin-console
   login + session iframe) is pinned to `KC_HOSTNAME_ADMIN` via a per-realm `frontendUrl`
-  reconciled at startup (`realm-config/apply-master-frontendurl.sh`); without it the
+  reconciled at startup on tb-dev and tb-stage (`realm-config/apply-master-frontendurl.sh`)
+  and after each sync on tb-prod (`keycloak/master-frontendurl-job.yaml`); without it the
   console's master login/iframe requests hit the public host and the `/realms/master`
   edge deny (KC 26 hostname v2, KC #32458).
 - **Break-glass (admin unreachable).** If Tailscale is down, or `master`'s `frontendUrl`
@@ -65,8 +66,9 @@ kustomize build overlays/tb-dev        # or a single overlay
       --client "$KEYCLOAK_ADMIN_CLIENT_ID";
     /opt/keycloak/bin/kcadm.sh update realms/master -s "attributes.frontendUrl=$KC_HOSTNAME_ADMIN"'
   ```
-  The reconcile is idempotent and re-runs on the next pod start, so a manual fix is only
-  a bridge until the config/branch is corrected.
+  The reconcile is idempotent and re-runs on the next pod start (tb-prod: the next sync; the
+  Job does nothing at 0 replicas), so a manual fix is only a bridge until the config/branch
+  is corrected. On tb-prod a value lost outside a sync stays lost until someone syncs.
 
 ## DB connectivity (Neon over PrivateLink)
 

@@ -1,0 +1,103 @@
+# Points the master realm's frontendUrl at the tailnet admin host after every sync.
+#
+# frontendUrl is a realm attribute in the Keycloak database. Without it the admin
+# console loads from KC_HOSTNAME_ADMIN but its master login and iframe requests go to
+# KC_HOSTNAME (auth.tb.pro), where public-ingress.yaml returns 403 for /realms/master.
+#
+# A Job instead of the tb-dev/tb-stage startup script: that script needs an entrypoint
+# override, which would also change how tb-prod starts Keycloak and restart its pods.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-master-frontendurl
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        # Not keycloak-customer: the Services and the SecurityGroupPolicy select that label.
+        app.kubernetes.io/name: keycloak-master-frontendurl
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        role: general
+        kubernetes.io/arch: arm64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kcadm
+          image: REPLACE_MZLA_ECR/keycloak-customer
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          env:
+            # kustomization.yaml `replacements` fills these three from the StatefulSet.
+            - name: FRONTEND_URL
+              value: FROM_STATEFULSET
+            - name: CLIENT_ID
+              value: FROM_STATEFULSET
+            - name: REPLICAS
+              value: "FROM_STATEFULSET"
+            # kcadm reads this when --secret is omitted, so it stays out of argv.
+            - name: KC_CLI_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin-client
+                  key: client-secret
+          command:
+            - /bin/bash
+            - -euc
+          args:
+            - |
+              if [ "$REPLICAS" -eq 0 ]; then
+                echo "Keycloak is scaled to 0: nothing to do"
+                exit 0
+              fi
+              kcadm=/opt/keycloak/bin/kcadm.sh
+              config=/tmp/kcadm.config
+              # Address pods one at a time: a token from one pod can be rejected (401) by another
+              # until both have the new value, because changing it changes the master issuer.
+              login() {
+                "$kcadm" config credentials --config "$config" \
+                  --server "http://keycloak-customer-$1.keycloak-customer-headless.keycloak-customer.svc.cluster.local:8080" \
+                  --realm master --client "$CLIENT_ID"
+              }
+              serves_frontend_url() {
+                local attributes
+                login "$1" || return 1
+                attributes="$("$kcadm" get realms/master --config "$config" --fields 'attributes(frontendUrl)')" || return 1
+                [[ "$attributes" == *"\"$FRONTEND_URL\""* ]]
+              }
+              login 0
+              "$kcadm" update realms/master --config "$config" \
+                -s "attributes.frontendUrl=$FRONTEND_URL"
+              # Fail the sync if any pod does not pick the value up.
+              for ((pod = 0; pod < REPLICAS; pod++)); do
+                attempt=1
+                until serves_frontend_url "$pod"; do
+                  if [ "$attempt" -ge 6 ]; then
+                    echo "keycloak-customer-$pod: master frontendUrl is not $FRONTEND_URL" >&2
+                    exit 1
+                  fi
+                  attempt=$((attempt + 1))
+                  sleep 5
+                done
+                echo "keycloak-customer-$pod: master frontendUrl is $FRONTEND_URL"
+              done
