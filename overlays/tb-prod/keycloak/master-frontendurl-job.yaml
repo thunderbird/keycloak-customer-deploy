@@ -1,0 +1,75 @@
+# Points the master realm's frontendUrl at the tailnet admin host after every sync.
+#
+# frontendUrl is a realm attribute in the Keycloak database. Without it the admin
+# console loads from KC_HOSTNAME_ADMIN but its master login and iframe requests go to
+# KC_HOSTNAME (auth.tb.pro), where public-ingress.yaml returns 403 for /realms/master.
+#
+# A Job instead of the tb-dev/tb-stage startup script: that script needs an entrypoint
+# override, which would also change how tb-prod starts Keycloak and restart its pods.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-master-frontendurl
+  namespace: keycloak-customer
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        # Not keycloak-customer: the Services and the SecurityGroupPolicy select that label.
+        app.kubernetes.io/name: keycloak-master-frontendurl
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kcadm
+          image: REPLACE_MZLA_ECR/keycloak-customer
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          env:
+            # Keep equal to KC_HOSTNAME_ADMIN in statefulset.yaml.
+            - name: FRONTEND_URL
+              value: https://keycloak-customer-admin.tail2726a2.ts.net
+            # kcadm reads this when --secret is omitted, so it stays out of argv.
+            - name: KC_CLI_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-customer-admin-client
+                  key: client-secret
+          command:
+            - /bin/bash
+            - -euc
+          args:
+            - |
+              kcadm=/opt/keycloak/bin/kcadm.sh
+              config=/tmp/kcadm.config
+              "$kcadm" config credentials --config "$config" \
+                --server http://keycloak-customer.keycloak-customer.svc.cluster.local \
+                --realm master --client tb-accounts-admin
+              "$kcadm" update realms/master --config "$config" \
+                -s "attributes.frontendUrl=$FRONTEND_URL"
+              # Read it back: fail the sync if the write did not persist.
+              attributes="$("$kcadm" get realms/master --config "$config" --fields 'attributes(frontendUrl)')"
+              if [[ "$attributes" != *"\"$FRONTEND_URL\""* ]]; then
+                echo "master frontendUrl is not $FRONTEND_URL" >&2
+                exit 1
+              fi
+              echo "master frontendUrl is $FRONTEND_URL"

@@ -12,6 +12,7 @@ resources:
 - keycloak/tailscale-admin-ingress.yaml
 - keycloak/securitygrouppolicy.yaml
 - keycloak/admin-client-externalsecret.yaml
+- keycloak/master-frontendurl-job.yaml
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
