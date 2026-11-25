@@ -25,6 +25,9 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      nodeSelector:
+        role: general
+        kubernetes.io/arch: arm64
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -45,9 +48,13 @@ spec:
             limits:
               memory: 512Mi
           env:
-            # Keep equal to KC_HOSTNAME_ADMIN in statefulset.yaml.
+            # kustomization.yaml `replacements` fills these three from the StatefulSet.
             - name: FRONTEND_URL
-              value: https://keycloak-customer-admin.tail2726a2.ts.net
+              value: FROM_STATEFULSET
+            - name: CLIENT_ID
+              value: FROM_STATEFULSET
+            - name: REPLICAS
+              value: "FROM_STATEFULSET"
             # kcadm reads this when --secret is omitted, so it stays out of argv.
             - name: KC_CLI_CLIENT_SECRET
               valueFrom:
@@ -59,22 +66,38 @@ spec:
             - -euc
           args:
             - |
+              if [ "$REPLICAS" -eq 0 ]; then
+                echo "Keycloak is scaled to 0: nothing to do"
+                exit 0
+              fi
               kcadm=/opt/keycloak/bin/kcadm.sh
               config=/tmp/kcadm.config
+              # Address pods one at a time: a token from one pod can be rejected (401) by another
+              # until both have the new value, because changing it changes the master issuer.
               login() {
                 "$kcadm" config credentials --config "$config" \
-                  --server http://keycloak-customer.keycloak-customer.svc.cluster.local \
-                  --realm master --client tb-accounts-admin
+                  --server "http://keycloak-customer-$1.keycloak-customer-headless.keycloak-customer.svc.cluster.local:8080" \
+                  --realm master --client "$CLIENT_ID"
               }
-              login
+              serves_frontend_url() {
+                local attributes
+                login "$1" || return 1
+                attributes="$("$kcadm" get realms/master --config "$config" --fields 'attributes(frontendUrl)')" || return 1
+                [[ "$attributes" == *"\"$FRONTEND_URL\""* ]]
+              }
+              login 0
               "$kcadm" update realms/master --config "$config" \
                 -s "attributes.frontendUrl=$FRONTEND_URL"
-              # Read it back: fail the sync if the write did not persist. Changing the value
-              # changes the master issuer, so the first token is rejected (401): log in again.
-              login
-              attributes="$("$kcadm" get realms/master --config "$config" --fields 'attributes(frontendUrl)')"
-              if [[ "$attributes" != *"\"$FRONTEND_URL\""* ]]; then
-                echo "master frontendUrl is not $FRONTEND_URL" >&2
-                exit 1
-              fi
-              echo "master frontendUrl is $FRONTEND_URL"
+              # Fail the sync if any pod does not pick the value up.
+              for ((pod = 0; pod < REPLICAS; pod++)); do
+                attempt=1
+                until serves_frontend_url "$pod"; do
+                  if [ "$attempt" -ge 6 ]; then
+                    echo "keycloak-customer-$pod: master frontendUrl is not $FRONTEND_URL" >&2
+                    exit 1
+                  fi
+                  attempt=$((attempt + 1))
+                  sleep 5
+                done
+                echo "keycloak-customer-$pod: master frontendUrl is $FRONTEND_URL"
+              done

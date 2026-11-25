@@ -66,8 +66,9 @@ kustomize build overlays/tb-dev        # or a single overlay
       --client "$KEYCLOAK_ADMIN_CLIENT_ID";
     /opt/keycloak/bin/kcadm.sh update realms/master -s "attributes.frontendUrl=$KC_HOSTNAME_ADMIN"'
   ```
-  The reconcile is idempotent and re-runs on the next pod start (tb-prod: the next sync), so a manual fix is only
-  a bridge until the config/branch is corrected.
+  The reconcile is idempotent and re-runs on the next pod start (tb-prod: the next sync; the
+  Job does nothing at 0 replicas), so a manual fix is only a bridge until the config/branch
+  is corrected. On tb-prod a value lost outside a sync stays lost until someone syncs.
 
 ## DB connectivity (Neon over PrivateLink)
 
