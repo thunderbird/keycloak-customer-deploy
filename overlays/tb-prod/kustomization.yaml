@@ -15,7 +15,7 @@ resources:
 images:
 - name: REPLACE_MZLA_ECR/keycloak-customer
   newName: ghcr.io/thunderbird/thunderbird-accounts-keycloak
-  digest: sha256:69783077c44cbdf7c277ed2449ff80432e087c64a8c12f81c5b9b64c15ddf08f
+  digest: sha256:5114f48c7b45432453369c479139ce84e2bcdb62ab2a6977bbff49e95b39b05a
 patches:
 # Keycloak workload: public and admin hostnames, legacy DB host, admin client
 - path: keycloak/statefulset.yaml
